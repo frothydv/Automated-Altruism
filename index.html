@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#141615">
+<title>Automated Altruism: neighbors helping neighbors, with software</title>
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
+<link rel="icon" type="image/png" sizes="64x64" href="favicon-64.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="description" content="A volunteer in Woodsboro, Maryland who builds free software tools for food pantries, churches, shelters, fire companies and other groups that help people.">
+<style>
+  :root { color-scheme:dark; --bg:#141615; --ink:#ecebe6; --muted:#a6a59e; --line:#2f3331; --accent:#7cc4a0;
+          --gold:#d4a95c; --card:#1c1f1e; }
+  * { box-sizing:border-box }
+  body { margin:0; background:var(--bg); color:var(--ink); font:18px/1.6 Georgia, "Times New Roman", serif }
+  main { max-width:720px; margin:0 auto; padding:48px 20px 64px }
+  h1 { font-size:2rem; line-height:1.2; margin:0 0 12px }
+  h2 { font:600 1.1rem/1.3 system-ui, sans-serif; margin:40px 0 10px; color:var(--accent); letter-spacing:.02em }
+  p, li { margin:0 0 12px }
+  .lede { font-size:1.15rem; color:var(--muted) }
+  ol, ul { padding-left:1.3em }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:18px 20px; margin:16px 0 }
+  .contact { font:600 1.05rem system-ui, sans-serif }
+  a { color:var(--accent) }
+  .brand { text-align:center; margin-bottom:36px }
+  .brand img { width:150px; height:150px; border-radius:50% }
+  .brand .name { font:700 1.6rem/1.2 system-ui, sans-serif; letter-spacing:.06em; text-transform:uppercase; margin:10px 0 4px }
+  .brand .tagline { font:500 .95rem system-ui, sans-serif; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); margin:0 }
+  .brand img { background:#e9e6dc; padding:10px }  /* the blue hands need a light ground on a dark page */
+  .examples { display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:14px; margin:14px 0 }
+  .example { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:16px 18px;
+             display:flex; flex-direction:column }
+  .example h3 { font:600 1.05rem/1.3 system-ui, sans-serif; margin:0 0 6px }
+  .example p { font-size:.95rem; color:var(--muted); flex:1 }
+  .try { display:inline-block; align-self:flex-start; font:600 .95rem system-ui, sans-serif; text-decoration:none;
+         background:var(--accent); color:#0d1a13; padding:8px 18px; border-radius:999px }
+  .try:hover { filter:brightness(1.1) }
+  footer { margin-top:48px; padding-top:16px; border-top:1px solid var(--line); color:var(--muted); font-size:.9rem }
+</style>
+</head>
+<body>
+<main>
+  <header class="brand">
+    <img src="logo-mark.png" alt="Two hands holding a heart inside a gear">
+    <p class="name">Automated Altruism</p>
+    <p class="tagline">Neighbors helping neighbors, with software</p>
+  </header>
+  <h1>Free software help for the people who help others</h1>
+  <p class="lede">Automated Altruism is a volunteer project by Josh, an electrical and software engineer with
+  more than 25 years of experience, and a Christian here in Woodsboro, Maryland. I build free software for groups that serve our neighbors: food pantries,
+  churches, shelters, recovery programs, senior and disability services, volunteer fire companies, youth
+  programs and others.</p>
+
+  <h2>Why</h2>
+  <p>I believe it's important to help our neighbors. You're already doing that far better than I know how
+  to. What I do know is software, and I'd love to put it to work for you.</p>
+
+  <h2>What kind of help</h2>
+  <p>Anything where software would save you time or headaches, from a quick fix to a bigger system:</p>
+  <ul>
+    <li>a volunteer sign-up or shift schedule</li>
+    <li>tracking pantry inventory, donations or distributions</li>
+    <li>a website your own people can update, with events and sign-ups</li>
+    <li>untangling a spreadsheet that's grown out of control</li>
+    <li>a larger system that ties it together: intake, scheduling, reporting for grants</li>
+  </ul>
+  <p>Bigger projects happen in stages. Each stage gives you something that works, and you tell me what
+  should come next.</p>
+
+  <h2>See it in action</h2>
+  <p>Real tools, filled with made-up sample data. Click around: nothing you do is saved anywhere but your own browser.</p>
+  <div class="examples"><div class="example"><h3>Volunteer Shift Sign-Up Scheduler</h3><p>Sign up for charity volunteer shifts for free, right from your phone, with no account needed, and see at a glance where help is still needed.</p><a class="try" href="examples/volunteer-scheduler/index.html">Try it</a></div></div>
+
+  <h2>How it works</h2>
+  <ol>
+    <li><strong>Tell me the problem</strong> in your own words, by email. No technical knowledge needed.</li>
+    <li><strong>I might ask a few questions</strong>, so I build the right thing.</li>
+    <li><strong>I send you a link to try it</strong>, filled with made-up test data, so you can click around freely.</li>
+    <li><strong>You tell me what to change.</strong> We go back and forth until it fits.</li>
+    <li><strong>It's yours.</strong> Free, to keep and use however you like.</li>
+  </ol>
+
+  <h2>A few honest notes</h2>
+  <div class="card">
+    <ul>
+      <li>I build these tools with help from AI models run by outside companies that I don't fully control.
+      Please don't send me personal information about the people you serve, or anything confidential.
+      A general description of the problem is all I need.</li>
+      <li>Whatever I build is yours to keep and use freely. I also share a general version openly, so other
+      organizations can benefit, and I leave out anything specific to you.</li>
+      <li>It's always free. I can't promise to take on everything, and I can't promise ongoing support.</li>
+    </ul>
+  </div>
+
+  <h2>Get in touch</h2>
+  <p>Just email me about whatever is making your work harder:</p>
+  <p class="contact"><a href="mailto:automatedaltruism@gmail.com">automatedaltruism@gmail.com</a></p>
+
+  <footer>
+    The reusable tools are open source (MIT) at
+    <a href="https://github.com/frothydv/aa-toolkit">github.com/frothydv/aa-toolkit</a>.
+  </footer>
+</main>
+</body>
+</html>
