@@ -1,0 +1,514 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="dark"><meta name="theme-color" content="#12161c"><title>Door check-in</title>
+<style>html{background:#12161c}</style>
+<style>:root{--bg:#12161c;--card:#1b222b;--line:#4a5663;--text:#f2f5f8;--muted:#b4bfcb;--accent:#5fd18a;--accentText:#08210f;--warn:#ffc857;--bad:#ff8a80;--field:#0e1217;--blue:#2f6fd0}
+:root.light{--bg:#f6f7f4;--card:#fff;--line:#7d8893;--text:#14181d;--muted:#46505b;--accent:#1f7a45;--accentText:#fff;--warn:#8a5a00;--bad:#b3261e;--field:#fff;--blue:#1c55b0}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--text);font:18px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+#app{max-width:820px;margin:0 auto;padding:10px 14px 96px}
+header.top{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:6px}
+header.top h1{font-size:1.15rem;margin:0;flex:1;min-width:150px}
+h2{font-size:1.3rem;margin:16px 0 8px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;margin:12px 0}
+.muted{color:var(--muted)}.small{font-size:.9rem}
+button,.btn{font:inherit;min-height:48px;padding:10px 16px;border-radius:12px;border:2px solid var(--line);background:var(--card);color:var(--text);cursor:pointer}
+button:focus-visible,input:focus-visible,select:focus-visible,a:focus-visible{outline:3px solid var(--warn);outline-offset:2px}
+button.primary{background:var(--accent);color:var(--accentText);border-color:var(--accent);font-weight:700}
+button.danger{border-color:var(--bad);color:var(--bad)}
+button.small{min-height:40px;padding:6px 12px;font-size:.95rem}
+button.link{border:0;background:none;text-decoration:underline;min-height:44px;padding:6px}
+nav.tabs{display:flex;gap:6px;position:fixed;bottom:0;left:0;right:0;background:var(--card);border-top:1px solid var(--line);padding:6px;justify-content:center;z-index:5}
+nav.tabs button{flex:1;max-width:200px;min-height:54px}
+nav.tabs button[aria-current=page]{background:var(--accent);color:var(--accentText);border-color:var(--accent);font-weight:700}
+label{display:block;font-weight:600;margin:12px 0 4px}
+input,select{font:inherit;width:100%;min-height:50px;padding:8px 12px;border-radius:10px;border:2px solid var(--line);background:var(--field);color:var(--text)}
+input.search{font-size:1.4rem;min-height:62px;border-color:var(--accent)}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
+.actions .primary{flex:1;min-height:58px;font-size:1.2rem}
+.evbar{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+.evbar b{font-size:1.1rem}
+.count{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.count .num{font-size:3rem;font-weight:800;line-height:1;color:var(--accent);font-variant-numeric:tabular-nums}
+.res{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap;border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin:8px 0;background:var(--card)}
+.res.here{border-color:var(--accent)}
+.res .who{flex:1;min-width:150px}.res .who b{font-size:1.2rem}
+.res .btns{display:flex;gap:8px;flex-wrap:wrap}
+.res .btns .primary{min-height:52px}
+.pill{display:inline-block;padding:2px 10px;border-radius:99px;font-weight:700;font-size:.85rem;border:2px solid var(--accent);color:var(--accent)}
+.alert{border-left:6px solid var(--warn);padding:10px 14px;background:var(--card);border-radius:10px;margin:12px 0}
+.alert.ok{border-left-color:var(--accent)}
+.sample{background:var(--warn);color:#201500;padding:6px 12px;border-radius:10px;font-weight:600;font-size:.9rem;margin:6px 0}
+:root.light .sample{background:#ffe9b0}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:84px;background:var(--text);color:var(--bg);padding:12px 18px;border-radius:12px;z-index:9;display:flex;gap:14px;align-items:center;max-width:92vw}
+.toast button{min-height:40px;background:transparent;color:var(--bg);border-color:var(--bg)}
+.err{color:var(--bad);font-weight:600;margin-top:10px}
+.chips{display:flex;gap:8px;flex-wrap:wrap}.chips button{min-height:44px}
+.chips button[aria-pressed=true]{background:var(--accent);color:var(--accentText);border-color:var(--accent)}
+.sr{position:absolute;left:-9999px}
+.namerow{display:flex;gap:8px;margin:8px 0}.namerow input{flex:1}
+ol.steps{padding-left:22px}ol.steps li{margin:6px 0}
+table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:8px;border-bottom:1px solid var(--line)}th{color:var(--muted);font-size:.9rem}
+@media(max-width:560px){.row2{grid-template-columns:1fr}.count .num{font-size:2.5rem}}
+@media print{nav.tabs,.noprint,.toast{display:none!important}:root,:root.light{--bg:#fff;--card:#fff;--text:#000;--muted:#333;--line:#888}}
+</style></head>
+<body><div id="app"></div><noscript>This page needs JavaScript turned on to work.</noscript>
+<script>
+/* event-checkin core: pure logic, no DOM, no storage. Works in browsers and Node.
+   Data: {version, guests:[{id,name,familyId|null,createdAt}], events:[{id,name,date}],
+          checkins:[{id,eventId,guestId,at}]}
+   Only a name is stored for each guest. Families are just a shared familyId. */
+(function (root) {
+  'use strict';
+  var C = {};
+  var seq = 0;
+  C.uid = function (p) { seq++; return (p || 'x') + Date.now().toString(36) + Math.random().toString(36).slice(2, 7) + seq.toString(36); };
+  C.emptyData = function () { return { version: 1, guests: [], events: [], checkins: [] }; };
+  C.norm = function (s) {
+    s = String(s == null ? '' : s).toLowerCase();
+    try { s = s.normalize('NFD').replace(/[̀-ͯ]/g, ''); } catch (e) {}
+    return s.replace(/[^a-z0-9 ]+/g, ' ').replace(/\s+/g, ' ').trim();
+  };
+  /* Tidy a typed name: trim, squash spaces, fix ALL CAPS / all lower case, "Last, First" -> "First Last". */
+  C.tidyName = function (s) {
+    s = String(s == null ? '' : s).replace(/\s+/g, ' ').trim().slice(0, 80);
+    if (s.indexOf(',') > 0 && s.split(',').length === 2) { var p = s.split(','); s = (p[1].trim() + ' ' + p[0].trim()).trim(); }
+    /* Fix a word only if it is all lower or all upper case; leave McDonald, DeShawn etc. alone. */
+    s = s.split(' ').map(function (w) {
+      if (w !== w.toLowerCase() && w !== w.toUpperCase()) return w;
+      return w.toLowerCase().replace(/(^|[\-'])([a-z\u00c0-\u024f])/g, function (m, x, y) { return x + y.toUpperCase(); });
+    }).join(' ');
+    return s;
+  };
+  C.today = function (d) { d = d || new Date(); return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2); };
+  /* Understands 2026-10-09 and "9 Oct 2026" (day/month numbers are ambiguous, so not guessed); else null. */
+  C.parseDate = function (s) {
+    s = String(s || '').trim(); var m = /^(\d{4})-(\d{1,2})-(\d{1,2})$/.exec(s), t;
+    if (m) t = new Date(+m[1], +m[2] - 1, +m[3]); else { var n = Date.parse(s); if (isNaN(n)) return null; t = new Date(n); }
+    if (isNaN(t.getTime()) || t.getFullYear() < 2000 || t.getFullYear() > 2100) return null;
+    return C.today(t);
+  };
+  C.sanitize = function (d) {
+    var o = C.emptyData(); if (!d || typeof d !== 'object') return o;
+    var gids = {}, eids = {}, seen = {};
+    (Array.isArray(d.guests) ? d.guests : []).forEach(function (g) {
+      if (!g || !g.id || !g.name || gids[g.id]) return;
+      gids[g.id] = 1; o.guests.push({ id: String(g.id), name: C.tidyName(g.name) || String(g.name).slice(0, 80), familyId: g.familyId ? String(g.familyId) : null, createdAt: +g.createdAt || 0 });
+    });
+    (Array.isArray(d.events) ? d.events : []).forEach(function (e) {
+      if (!e || !e.id || eids[e.id]) return; var dt = C.parseDate(e.date); if (!dt) return;
+      eids[e.id] = 1; o.events.push({ id: String(e.id), name: String(e.name || 'Event').slice(0, 80), date: dt });
+    });
+    (Array.isArray(d.checkins) ? d.checkins : []).forEach(function (c) {
+      if (!c || !gids[c.guestId] || !eids[c.eventId]) return;
+      var k = c.eventId + '|' + c.guestId; if (seen[k]) return; seen[k] = 1;
+      o.checkins.push({ id: String(c.id || C.uid('c')), eventId: c.eventId, guestId: c.guestId, at: +c.at || 0 });
+    });
+    C.leaveLoneFamilies(o);
+    return o;
+  };
+  C.guest = function (d, id) { for (var i = 0; i < d.guests.length; i++) if (d.guests[i].id === id) return d.guests[i]; return null; };
+  C.event = function (d, id) { for (var i = 0; i < d.events.length; i++) if (d.events[i].id === id) return d.events[i]; return null; };
+  C.findByName = function (d, name) { var n = C.norm(name); return d.guests.filter(function (g) { return C.norm(g.name) === n; })[0] || null; };
+  C.addGuest = function (d, name, familyId, now) {
+    name = C.tidyName(name); if (!C.norm(name)) return { error: 'Please type a name.' };
+    var ex = C.findByName(d, name); if (ex) return { guest: ex, existed: true };
+    var g = { id: C.uid('g'), name: name, familyId: familyId || null, createdAt: now || Date.now() };
+    d.guests.push(g); return { guest: g, existed: false };
+  };
+  /* names: typed names that belong together. Existing guests are reused and joined to the family. */
+  C.addFamily = function (d, names, now) {
+    var fid = C.uid('f'), out = [];
+    names.forEach(function (n) {
+      if (!C.norm(n)) return;
+      var r = C.addGuest(d, n, fid, now); if (r.error) return;
+      if (r.existed && r.guest.familyId && r.guest.familyId !== fid) { var keep = r.guest.familyId; out.forEach(function (g) { g.familyId = keep; }); fid = keep; }
+      r.guest.familyId = fid; if (out.indexOf(r.guest) < 0) out.push(r.guest);
+    });
+    C.leaveLoneFamilies(d);
+    return out;
+  };
+  C.familyMembers = function (d, g) { return g.familyId ? d.guests.filter(function (x) { return x.familyId === g.familyId; }) : [g]; };
+  C.leaveLoneFamilies = function (d) {
+    var n = {}; d.guests.forEach(function (g) { if (g.familyId) n[g.familyId] = (n[g.familyId] || 0) + 1; });
+    d.guests.forEach(function (g) { if (g.familyId && n[g.familyId] < 2) g.familyId = null; });
+  };
+  C.renameGuest = function (d, id, name) { var g = C.guest(d, id); name = C.tidyName(name); if (!g || !C.norm(name)) return false; g.name = name; return true; };
+  C.removeGuest = function (d, id) {
+    d.guests = d.guests.filter(function (g) { return g.id !== id; });
+    d.checkins = d.checkins.filter(function (c) { return c.guestId !== id; }); C.leaveLoneFamilies(d);
+  };
+  C.addEvent = function (d, name, date) {
+    name = String(name || '').replace(/\s+/g, ' ').trim().slice(0, 80); if (!name) return { error: 'Please give the event a name.' };
+    var dt = C.parseDate(date || C.today()); if (!dt) return { error: 'That date was not understood. Try it like 2026-10-11 or 11 Oct 2026.' };
+    var ex = d.events.filter(function (e) { return e.name.toLowerCase() === name.toLowerCase() && e.date === dt; })[0];
+    if (ex) return { event: ex, existed: true };
+    var e = { id: C.uid('e'), name: name, date: dt }; d.events.push(e); return { event: e, existed: false };
+  };
+  C.removeEvent = function (d, id) { d.events = d.events.filter(function (e) { return e.id !== id; }); d.checkins = d.checkins.filter(function (c) { return c.eventId !== id; }); };
+  C.eventsSorted = function (d) { return d.events.slice().sort(function (a, b) { return a.date < b.date ? 1 : a.date > b.date ? -1 : 0; }); };
+  C.isHere = function (d, eventId, guestId) { for (var i = 0; i < d.checkins.length; i++) if (d.checkins[i].eventId === eventId && d.checkins[i].guestId === guestId) return true; return false; };
+  C.checkIn = function (d, eventId, guestId, now) {
+    if (!C.event(d, eventId) || !C.guest(d, guestId) || C.isHere(d, eventId, guestId)) return false;
+    d.checkins.push({ id: C.uid('c'), eventId: eventId, guestId: guestId, at: now || Date.now() }); return true;
+  };
+  /* Checks in several people; returns the ids actually added (so Undo removes exactly those). */
+  C.checkInMany = function (d, eventId, ids, now) { return ids.filter(function (id) { return C.checkIn(d, eventId, id, now); }); };
+  C.undoCheckIn = function (d, eventId, guestId) {
+    var n = d.checkins.length; d.checkins = d.checkins.filter(function (c) { return !(c.eventId === eventId && c.guestId === guestId); }); return d.checkins.length < n;
+  };
+  C.visitCounts = function (d) { var m = {}; d.checkins.forEach(function (c) { m[c.guestId] = (m[c.guestId] || 0) + 1; }); return m; };
+  C.lastSeen = function (d) {
+    var ev = {}; d.events.forEach(function (e) { ev[e.id] = e.date; }); var m = {};
+    d.checkins.forEach(function (c) { var dt = ev[c.eventId]; if (dt && (!m[c.guestId] || dt > m[c.guestId])) m[c.guestId] = dt; }); return m;
+  };
+  /* Every typed word must start a word of the name. Best matches first, then frequent visitors.
+     Returns [{guest, here, visits}] (max `limit`). */
+  C.search = function (d, q, eventId, limit) {
+    var words = C.norm(q).split(' ').filter(Boolean); if (!words.length) return [];
+    var counts = C.visitCounts(d), res = [];
+    d.guests.forEach(function (g) {
+      var n = C.norm(g.name), parts = n.split(' '), score = 0, ok = true;
+      words.forEach(function (w) {
+        if (n.indexOf(w) === 0) score += 3;
+        else if (parts.some(function (p) { return p.indexOf(w) === 0; })) score += 2;
+        else ok = false;
+      });
+      if (!ok) return;
+      if (n === words.join(' ')) score += 5;
+      res.push({ guest: g, here: eventId ? C.isHere(d, eventId, g.id) : false, visits: counts[g.id] || 0, score: score });
+    });
+    res.sort(function (a, b) { return b.score - a.score || b.visits - a.visits || (a.guest.name < b.guest.name ? -1 : 1); });
+    return res.slice(0, limit || 30);
+  };
+  C.attendees = function (d, eventId) {
+    var gs = {}; d.guests.forEach(function (g) { gs[g.id] = g; });
+    return d.checkins.filter(function (c) { return c.eventId === eventId && gs[c.guestId]; })
+      .sort(function (a, b) { return b.at - a.at; }).map(function (c) { return { guest: gs[c.guestId], at: c.at }; });
+  };
+  /* Live headcount for one event. firstTime = people with no check-in at any earlier event. */
+  C.headcount = function (d, eventId) {
+    var ev = C.event(d, eventId); if (!ev) return { total: 0, firstTime: 0 };
+    var dates = {}; d.events.forEach(function (e) { dates[e.id] = e.date; });
+    var before = {}; d.checkins.forEach(function (c) { if (c.eventId !== eventId && dates[c.eventId] && dates[c.eventId] < ev.date) before[c.guestId] = 1; });
+    var total = 0, ft = 0;
+    d.checkins.forEach(function (c) { if (c.eventId !== eventId) return; total++; if (!before[c.guestId]) ft++; });
+    return { total: total, firstTime: ft };
+  };
+  C.fmtDate = function (iso) {
+    var p = /^(\d{4})-(\d\d)-(\d\d)$/.exec(iso || ''); if (!p) return iso || '';
+    var m = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    return +p[3] + ' ' + m[+p[2] - 1] + ' ' + p[1];
+  };
+  if (typeof module !== 'undefined' && module.exports) module.exports = C; else root.Checkin = C;
+})(typeof window !== 'undefined' ? window : this);
+
+</script><script>
+/* Made-up sample data. Every name here is invented; no real people. Dates are relative to today. */
+(function (root) {
+  'use strict';
+  var FAMILIES = [
+    ['Marcus Alder', 'Priya Alder', 'Noah Alder', 'Ivy Alder'], ['Grace Bellamy', 'Tom Bellamy', 'Ruby Bellamy'],
+    ['Elena Castillo', 'Mateo Castillo', 'Sofia Castillo'], ['Jonas Dahl', 'Maren Dahl'],
+    ['Amara Okafor', 'Chidi Okafor', 'Zuri Okafor', 'Tobi Okafor'], ['Harold Finch', 'Margaret Finch'],
+    ['Lucy Tran', 'Danny Tran'], ['Peter Whitlock', 'Susan Whitlock', 'Abby Whitlock'],
+    ['Rosa Delgado', 'Luis Delgado', 'Ana Delgado'], ['Fatima Rahman', 'Yusuf Rahman', 'Layla Rahman', 'Omar Rahman']
+  ];
+  var SINGLES = ['Walter Pruitt', 'Dolores Haynes', 'Ethan Brooks', 'Mei Lin Park', 'George Abernathy', 'Hannah Voss', 'Samuel Njoroge',
+    'Beatrice Lund', 'Kai Morrow', 'Ines Ferreira', 'Raymond Cole', 'Tessa Quinn', 'Arjun Mehta', 'Nora Kessler', 'Felix Ostrander',
+    'Josephine Wray', 'Leo Santos', 'Edith Marlowe', 'Victor Hale', 'Clara Nyström'];
+  var KIDS = /Noah|Ivy|Ruby|Sofia|Zuri|Tobi|Abby|Ana |Layla|Omar|Danny/;
+  function daysAgo(n) { var d = new Date(); d.setDate(d.getDate() - n); return root.Checkin.today(d); }
+  root.CheckinSample = {
+    orgName: 'Hillside Community Church (sample data)',
+    build: function () {
+      var C = root.Checkin, d = C.emptyData(), t0 = Date.now() - 90 * 864e5, all = [], seed = 7;
+      function rnd() { seed = (seed * 9301 + 49297) % 233280; return seed / 233280; }
+      FAMILIES.forEach(function (f) { C.addFamily(d, f, t0).forEach(function (g) { all.push(g); }); });
+      SINGLES.forEach(function (n) { all.push(C.addGuest(d, n, null, t0).guest); });
+      var plan = [], dow = new Date().getDay();
+      for (var w = 5; w >= 1; w--) { plan.push(['Sunday service', w * 7 + dow]); plan.push(['Community meal', w * 7 + dow - 3]); }
+      plan.push(['Youth night', 10], ['Youth night', 24]);
+      plan.sort(function (a, b) { return b[1] - a[1]; });
+      plan.forEach(function (p) {
+        if (p[1] < 1) return;
+        var e = C.addEvent(d, p[0], daysAgo(p[1])).event, prob = p[0] === 'Sunday service' ? 0.66 : p[0] === 'Community meal' ? 0.55 : 0.5, fam = {};
+        all.forEach(function (g, i) {
+          if (p[0] === 'Youth night' && !KIDS.test(g.name + ' ') && i % 7) return;
+          var k = g.familyId || g.id; if (!(k in fam)) fam[k] = rnd() < prob;
+          if (fam[k]) C.checkIn(d, e.id, g.id, new Date(e.date + 'T10:' + ('0' + Math.floor(rnd() * 50)).slice(-2)).getTime());
+        });
+      });
+      // First-time visitors at the most recent community meal.
+      var meals = C.eventsSorted(d).filter(function (e) { return e.name === 'Community meal'; });
+      if (meals[0]) ['Quinn Everett', 'Dara Whitfield'].forEach(function (n) { C.checkIn(d, meals[0].id, C.addGuest(d, n, null, Date.now()).guest.id, new Date(meals[0].date + 'T12:15').getTime()); });
+      // Today's event, with a few people already in.
+      var today = C.addEvent(d, 'Sunday service', C.today()).event, n = 0;
+      all.forEach(function (g) { if (n < 14 && rnd() < 0.35) { C.checkIn(d, today.id, g.id, Date.now() - (n + 1) * 60000); n++; } });
+      return { data: C.sanitize(d), currentEventId: today.id };
+    }
+  };
+})(window);
+
+</script><script>
+/* Browser storage adapter. Interface: load() -> data|null, save(data) -> bool, loadSettings() -> {}, saveSettings(obj).
+   Falls back to memory if the browser blocks storage (save() then returns false). */
+(function (root) {
+  'use strict';
+  var KEY = 'eventCheckin.data.v1', SKEY = 'eventCheckin.settings.v1', mem = {};
+  function get(k) { try { return localStorage.getItem(k); } catch (e) { return mem[k] || null; } }
+  function set(k, v) { try { localStorage.setItem(k, v); return true; } catch (e) { mem[k] = v; return false; } }
+  root.CheckinStorage = {
+    name: 'browser',
+    load: function () { var r = get(KEY); if (!r) return null; try { return root.Checkin.sanitize(JSON.parse(r)); } catch (e) { return null; } },
+    save: function (d) { return set(KEY, JSON.stringify(d)); },
+    loadSettings: function () { try { return JSON.parse(get(SKEY)) || {}; } catch (e) { return {}; } },
+    saveSettings: function (s) { return set(SKEY, JSON.stringify(s)); }
+  };
+})(window);
+
+</script><script>
+/* Door check-in UI. Plain JS; talks to Checkin (core) and CheckinStorage (adapter). */
+(function () {
+  'use strict';
+  var C = window.Checkin, S = window.CheckinStorage, SAMPLE = window.CheckinSample;
+  var settings = S.loadSettings(), data = S.load(), screen = 'checkin', query = '', toastTimer = null, addForm = null, storageOk = true;
+  var $app = document.getElementById('app');
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+
+  if (!data) { // first ever open: start with practice data so there is something to try
+    var b = SAMPLE.build(); data = b.data; settings.currentEventId = b.currentEventId; settings.org = SAMPLE.orgName; settings.sample = true; settings.welcome = true;
+    S.saveSettings(settings); S.save(data);
+  }
+  if (settings.theme === 'light') document.documentElement.classList.add('light');
+  function currentEvent() {
+    var e = C.event(data, settings.currentEventId);
+    if (!e) { e = C.eventsSorted(data)[0] || null; settings.currentEventId = e ? e.id : null; }
+    return e;
+  }
+  function save() { storageOk = S.save(data); S.saveSettings(settings); }
+  function snapshot() { return JSON.stringify(data); }
+  function toast(msg, undoSnap) {
+    var old = document.getElementById('toast'); if (old) old.remove(); clearTimeout(toastTimer);
+    var t = document.createElement('div'); t.id = 'toast'; t.className = 'toast'; t.setAttribute('role', 'status');
+    t.innerHTML = '<span>' + esc(msg) + '</span>' + (undoSnap ? '<button type="button">Undo</button>' : '');
+    document.body.appendChild(t);
+    if (undoSnap) t.querySelector('button').onclick = function () { data = C.sanitize(JSON.parse(undoSnap)); save(); t.remove(); render(); };
+    toastTimer = setTimeout(function () { t.remove(); }, 8000);
+  }
+  function go(s) { screen = s; if (s !== 'checkin') addForm = null; render(); window.scrollTo(0, 0); }
+
+  function header() {
+    return '<header class="top"><h1>' + esc(settings.org || 'Door check-in') + '</h1>' +
+      '<span class="muted small" id="net" aria-live="polite"></span>' +
+      '<button class="small" type="button" data-act="theme" aria-label="Switch between dark and light colors">' + (settings.theme === 'light' ? '🌙 Dark' : '☀️ Light') + '</button></header>' +
+      (settings.sample ? '<div class="sample">Practice mode: all names here are made up. Go to More → “Start fresh” when you are ready for real use.</div>' : '') +
+      (storageOk ? '' : '<div class="alert"><b>This browser is not saving.</b> Your check-ins will be lost if you close this page. Open the page in a normal (not private) window.</div>');
+  }
+  function tabs() {
+    var t = [['checkin', '✔ Check in'], ['here', '👥 Who’s here'], ['events', '📅 Events'], ['more', '⋯ More']];
+    return '<nav class="tabs" aria-label="Main">' + t.map(function (x) { return '<button type="button" data-act="tab" data-v="' + x[0] + '"' + (screen === x[0] ? ' aria-current="page"' : '') + '>' + x[1] + '</button>'; }).join('') + '</nav>';
+  }
+  function welcome() {
+    if (!settings.welcome) return '';
+    return '<div class="card" role="region" aria-label="Welcome"><h2 style="margin-top:0">Welcome! Three things to try</h2><ol class="steps">' +
+      '<li>Type <b>“gra”</b> in the box below and tap <b>Check in</b> next to Grace Bellamy. Her whole family can go in with one tap.</li>' +
+      '<li>Type a name that is not on the list, then tap <b>Add</b>. It takes a few seconds.</li>' +
+      '<li>Watch the big <b>headcount</b> number go up. Everything is saved on this device, even with no Wi-Fi.</li></ol>' +
+      '<button class="primary" type="button" data-act="welcomeOff">Got it, let’s start</button></div>';
+  }
+
+  function checkinScreen() {
+    var ev = currentEvent();
+    if (!ev) return '<div class="card"><h2 style="margin-top:0">No event yet</h2><p>Start an event for today, then you can check people in.</p><div class="actions"><button class="primary" type="button" data-act="tab" data-v="events">Start an event</button></div></div>';
+    return welcome() + '<div class="card"><div class="evbar"><div><b>' + esc(ev.name) + '</b><div class="muted">' + esc(C.fmtDate(ev.date)) + '</div></div>' +
+      '<button class="small" type="button" data-act="tab" data-v="events">Change event</button></div>' +
+      '<div class="count" aria-live="polite"><span class="num" id="hc"></span><span>here now <span class="muted" id="hcnew"></span></span></div></div>' +
+      '<label for="q">Who is here? Start typing a name</label><input id="q" class="search" type="search" autocomplete="off" autocapitalize="words" spellcheck="false" value="' + esc(query) + '" placeholder="e.g. gra bel">' +
+      '<div id="results" aria-live="polite"></div>' +
+      (addForm ? addFormHtml() : '');
+  }
+  function paintCount() {
+    var ev = currentEvent(); if (!ev) return; var h = C.headcount(data, ev.id), el = document.getElementById('hc');
+    if (el) { el.textContent = h.total; document.getElementById('hcnew').textContent = h.firstTime ? '(' + h.firstTime + ' first-time)' : ''; }
+  }
+  function paintResults() {
+    var box = document.getElementById('results'), ev = currentEvent(); if (!box || !ev) return;
+    if (addForm) { box.innerHTML = ''; return; }
+    var q = query.trim();
+    if (!q) { box.innerHTML = '<p class="muted">' + data.guests.length + ' people on the list. Type any part of a first or last name.</p><div class="actions"><button type="button" data-act="addOpen">+ Add a new person or family</button></div>'; return; }
+    var res = C.search(data, q, ev.id, 20), seen = C.lastSeen(data), html = '';
+    res.forEach(function (r) {
+      var g = r.guest, fam = C.familyMembers(data, g), others = fam.filter(function (x) { return x.id !== g.id; }), notHere = fam.filter(function (x) { return !C.isHere(data, ev.id, x.id); });
+      html += '<div class="res' + (r.here ? ' here' : '') + '"><div class="who"><b>' + esc(g.name) + '</b><div class="muted small">' +
+        (others.length ? 'With ' + esc(others.map(function (o) { return o.name.split(' ')[0]; }).join(', ')) + '. ' : '') +
+        (seen[g.id] ? 'Last here ' + esc(C.fmtDate(seen[g.id])) : 'New to us') + '</div></div><div class="btns">';
+      if (r.here) html += '<span class="pill">✓ Here</span><button class="small" type="button" data-act="undo1" data-id="' + g.id + '" aria-label="Undo check-in for ' + esc(g.name) + '">Undo</button>';
+      else html += '<button class="primary" type="button" data-act="in1" data-id="' + g.id + '" aria-label="Check in ' + esc(g.name) + '">Check in</button>';
+      if (notHere.length > 1 || (fam.length > 1 && !r.here && notHere.length > 1)) html += '<button type="button" data-act="inFam" data-id="' + g.id + '">Whole family (' + notHere.length + ')</button>';
+      html += '</div></div>';
+    });
+    if (!res.length) html = '<p class="muted">Nobody called “' + esc(q) + '” yet.</p>';
+    html += '<div class="actions"><button class="primary" type="button" data-act="addOpen">+ Add “' + esc(C.tidyName(q)) + '” as new</button></div>';
+    box.innerHTML = html;
+  }
+  function addFormHtml() {
+    var rows = addForm.names.map(function (n, i) {
+      return '<div class="namerow"><input aria-label="Name of person ' + (i + 1) + '" data-i="' + i + '" class="nm" autocomplete="off" autocapitalize="words" value="' + esc(n) + '" placeholder="First and last name">' +
+        (addForm.names.length > 1 ? '<button class="small danger" type="button" data-act="rmName" data-i="' + i + '" aria-label="Remove person ' + (i + 1) + '">✕</button>' : '') + '</div>';
+    }).join('');
+    return '<div class="card" id="addcard"><h2 style="margin-top:0">Add new</h2><p class="muted">A name is all we need. Add more names to check in a family together.</p>' + rows +
+      '<button type="button" data-act="moreName">+ Add another family member</button>' + (addForm.err ? '<div class="err" role="alert">' + esc(addForm.err) + '</div>' : '') +
+      '<div class="actions"><button class="primary" type="button" data-act="addGo">Add and check in</button><button type="button" data-act="addCancel">Cancel</button></div></div>';
+  }
+
+  function hereScreen() {
+    var ev = currentEvent(); if (!ev) return '<p>No event yet.</p>';
+    var list = C.attendees(data, ev.id), h = C.headcount(data, ev.id);
+    return '<h2>' + esc(ev.name) + ' · ' + esc(C.fmtDate(ev.date)) + '</h2><div class="card count"><span class="num">' + h.total + '</span><span>checked in' + (h.firstTime ? ' <span class="muted">(' + h.firstTime + ' first-time)</span>' : '') + '</span></div>' +
+      (list.length ? list.map(function (a) {
+        return '<div class="res here"><div class="who"><b>' + esc(a.guest.name) + '</b><div class="muted small">' + (a.at ? new Date(a.at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : '') + '</div></div>' +
+          '<button class="small" type="button" data-act="undo1" data-id="' + a.guest.id + '" aria-label="Undo check-in for ' + esc(a.guest.name) + '">Undo</button></div>';
+      }).join('') : '<p class="muted">Nobody yet. Go to Check in to start.</p>');
+  }
+  function eventsScreen() {
+    var names = ['Sunday service', 'Community meal', 'Youth night', 'Class', 'Fundraiser'], nm = settings.draftName || '', cur = currentEvent();
+    var evs = C.eventsSorted(data);
+    return '<h2>Start an event</h2><div class="card"><div class="chips" role="group" aria-label="Kinds of event">' +
+      names.map(function (n) { return '<button type="button" data-act="pickName" data-v="' + esc(n) + '" aria-pressed="' + (nm === n) + '">' + esc(n) + '</button>'; }).join('') + '</div>' +
+      '<label for="evn">Event name</label><input id="evn" value="' + esc(nm) + '" placeholder="Or type your own">' +
+      '<label for="evd">Date</label><input id="evd" value="' + C.today() + '"><div id="everr" class="err" role="alert"></div>' +
+      '<div class="actions"><button class="primary" type="button" data-act="evGo">Start check-in</button></div></div>' +
+      '<h2>Your events</h2>' + (evs.length ? evs.map(function (e) {
+        var h = C.headcount(data, e.id).total, isCur = cur && cur.id === e.id;
+        return '<div class="res' + (isCur ? ' here' : '') + '"><div class="who"><b>' + esc(e.name) + '</b><div class="muted small">' + esc(C.fmtDate(e.date)) + ' · ' + h + ' checked in</div></div><div class="btns">' +
+          (isCur ? '<span class="pill">Open now</span>' : '<button class="small primary" type="button" data-act="evUse" data-id="' + e.id + '">Open</button>') +
+          '<button class="small danger" type="button" data-act="evDel" data-id="' + e.id + '" aria-label="Delete ' + esc(e.name) + ' ' + esc(C.fmtDate(e.date)) + '">Delete</button></div></div>';
+      }).join('') : '<p class="muted">No events yet.</p>');
+  }
+  function moreScreen() {
+    return '<h2>Settings</h2><div class="card"><label for="org">Name shown at the top</label><input id="org" value="' + esc(settings.org || '') + '" placeholder="Your church or group">' +
+      '<p class="muted small">Saved as you type.</p></div>' +
+      '<h2>Keep your records safe</h2><div class="card"><div class="actions" style="margin-top:0"><button class="primary" type="button" data-act="backup">Save a backup file</button>' +
+      '<button type="button" data-act="restore">Restore from a backup</button></div><input id="file" type="file" accept=".json,application/json" class="sr" tabindex="-1" aria-label="Choose backup file">' +
+      '<p class="muted small">Everything is stored on this device only. A backup is a small file you can keep on a USB stick or email to yourself.</p></div>' +
+      '<h2>People on your list</h2><div class="card"><p>' + data.guests.length + ' people. To fix a typo or remove someone:</p><label for="pq">Find a person</label><input id="pq" type="search" autocomplete="off" placeholder="Start typing a name"><div id="plist"></div></div>' +
+      '<h2>More options</h2><div class="card"><div class="actions" style="margin-top:0"><button type="button" data-act="sampleReset">Start over with practice data</button><button class="danger" type="button" data-act="fresh">Start fresh (erase everything)</button></div>' +
+      '<p class="muted small">Both ask you first, and offer a way to undo.</p></div>';
+  }
+  function paintPeople() {
+    var box = document.getElementById('plist'), q = document.getElementById('pq'); if (!box) return;
+    var res = C.search(data, q.value, null, 8);
+    box.innerHTML = res.map(function (r) {
+      return '<div class="res"><div class="who"><b>' + esc(r.guest.name) + '</b></div><div class="btns"><button class="small" type="button" data-act="rename" data-id="' + r.guest.id + '" aria-label="Rename ' + esc(r.guest.name) + '">Rename</button>' +
+        '<button class="small danger" type="button" data-act="delGuest" data-id="' + r.guest.id + '" aria-label="Remove ' + esc(r.guest.name) + '">Remove</button></div></div>';
+    }).join('');
+  }
+
+  function render() {
+    var body = screen === 'checkin' ? checkinScreen() : screen === 'here' ? hereScreen() : screen === 'events' ? eventsScreen() : moreScreen();
+    $app.innerHTML = header() + '<main>' + body + '</main>' + tabs();
+    paintNet(); paintCount(); paintResults(); paintPeople();
+    var q = document.getElementById('q'); if (q && !addForm && !settings.welcome) { try { q.focus({ preventScroll: true }); } catch (e) {} }
+    if (addForm) { var f = document.querySelector('.nm[data-i="' + (addForm.focus || 0) + '"]'); if (f) f.focus(); }
+  }
+  function paintNet() { var n = document.getElementById('net'); if (n) n.textContent = (navigator.onLine === false ? 'Offline · ' : '') + 'Saved on this device'; }
+  window.addEventListener('online', paintNet); window.addEventListener('offline', paintNet);
+
+  function checkInIds(ids, label) {
+    var ev = currentEvent(), snap = snapshot(), added = C.checkInMany(data, ev.id, ids);
+    if (!added.length) { toast('Already checked in.'); return; }
+    save(); query = ''; var q = document.getElementById('q'); if (q) q.value = '';
+    render(); toast(label || (added.length === 1 ? C.guest(data, added[0]).name + ' checked in' : added.length + ' people checked in'), snap);
+    var q2 = document.getElementById('q'); if (q2) q2.focus();
+  }
+  function readNames() { return [].map.call(document.querySelectorAll('.nm'), function (i) { return i.value; }); }
+
+  document.addEventListener('input', function (e) {
+    var t = e.target;
+    if (t.id === 'q') { query = t.value; paintResults(); }
+    else if (t.id === 'pq') paintPeople();
+    else if (t.id === 'org') { settings.org = t.value; save(); var h = document.querySelector('header.top h1'); if (h) h.textContent = t.value || 'Door check-in'; }
+    else if (t.id === 'evn') settings.draftName = t.value;
+    else if (t.classList && t.classList.contains('nm') && addForm) addForm.names = readNames();
+  });
+  document.addEventListener('keydown', function (e) {
+    if (e.key !== 'Enter') return; var t = e.target;
+    if (t.id === 'q') {
+      var ev = currentEvent(), res = C.search(data, query, ev && ev.id, 20); e.preventDefault();
+      var open = res.filter(function (r) { return !r.here; });
+      if (res.length && (res.length === 1 || res[0].score > (res[1] ? res[1].score : -1)) && !res[0].here) checkInIds([res[0].guest.id]);
+      else if (!res.length && query.trim()) openAdd();
+      else if (open.length === 1) checkInIds([open[0].guest.id]);
+    } else if (t.classList && t.classList.contains('nm')) { e.preventDefault(); go1(); }
+    else if (t.id === 'evn' || t.id === 'evd') { e.preventDefault(); startEvent(); }
+  });
+  function go1() { var a = document.querySelector('[data-act=addGo]'); if (a) a.click(); }
+  function openAdd() { addForm = { names: [C.tidyName(query)], focus: 0 }; render(); }
+  function startEvent() {
+    var r = C.addEvent(data, document.getElementById('evn').value, document.getElementById('evd').value);
+    if (r.error) { document.getElementById('everr').textContent = r.error; return; }
+    settings.currentEventId = r.event.id; settings.draftName = ''; save(); go('checkin'); toast(r.existed ? 'That event already existed, so it is open again.' : 'Event started. Ready for check-in.');
+  }
+
+  document.addEventListener('click', function (e) {
+    var b = e.target.closest('[data-act]'); if (!b) return; var act = b.dataset.act, id = b.dataset.id, ev = currentEvent(), snap;
+    switch (act) {
+      case 'tab': go(b.dataset.v); break;
+      case 'theme': settings.theme = settings.theme === 'light' ? 'dark' : 'light'; document.documentElement.classList.toggle('light', settings.theme === 'light'); save(); render(); break;
+      case 'welcomeOff': settings.welcome = false; save(); render(); break;
+      case 'in1': checkInIds([id]); break;
+      case 'inFam': checkInIds(C.familyMembers(data, C.guest(data, id)).map(function (g) { return g.id; })); break;
+      case 'undo1': snap = snapshot(); C.undoCheckIn(data, ev.id, id); save(); render(); toast('Check-in removed.', snap); break;
+      case 'addOpen': openAdd(); break;
+      case 'addCancel': addForm = null; render(); break;
+      case 'moreName': addForm.names = readNames(); var first = (addForm.names[0] || '').trim().split(' '); addForm.names.push(first.length > 1 ? first[first.length - 1] + ' ' : ''); addForm.focus = addForm.names.length - 1; render(); var nm = document.querySelectorAll('.nm'); nm[nm.length - 1].setSelectionRange(0, 0); break;
+      case 'rmName': addForm.names = readNames(); addForm.names.splice(+b.dataset.i, 1); addForm.focus = 0; render(); break;
+      case 'addGo':
+        var names = readNames().filter(function (n) { return C.norm(n); }); addForm.names = readNames();
+        if (!names.length) { addForm.err = 'Please type a name first.'; render(); break; }
+        snap = snapshot(); var guests = names.length > 1 ? C.addFamily(data, names) : [C.addGuest(data, names[0]).guest];
+        addForm = null; checkInIds(guests.map(function (g) { return g.id; }), guests.length === 1 ? guests[0].name + ' added and checked in' : guests.length + ' people added and checked in');
+        break;
+      case 'pickName': settings.draftName = b.dataset.v; render(); break;
+      case 'evGo': startEvent(); break;
+      case 'evUse': settings.currentEventId = id; save(); go('checkin'); break;
+      case 'evDel':
+        var de = C.event(data, id), n = C.headcount(data, id).total;
+        if (confirm('Delete “' + de.name + ' · ' + C.fmtDate(de.date) + '” and its ' + n + ' check-ins? You can undo right after.')) { snap = snapshot(); C.removeEvent(data, id); save(); render(); toast('Event deleted.', snap); }
+        break;
+      case 'backup':
+        var blob = new Blob([JSON.stringify({ data: data, settings: { org: settings.org } }, null, 1)], { type: 'application/json' }), a = document.createElement('a');
+        a.href = URL.createObjectURL(blob); a.download = 'checkin-backup-' + C.today() + '.json'; document.body.appendChild(a); a.click(); a.remove(); toast('Backup saved to your Downloads folder.'); break;
+      case 'restore': document.getElementById('file').click(); break;
+      case 'rename':
+        var g = C.guest(data, id), nn = prompt('Correct the name:', g.name);
+        if (nn !== null) { snap = snapshot(); if (C.renameGuest(data, id, nn)) { save(); paintPeople(); toast('Name updated.', snap); } } break;
+      case 'delGuest':
+        var dg = C.guest(data, id);
+        if (confirm('Remove ' + dg.name + ' from your list, including their past check-ins?')) { snap = snapshot(); C.removeGuest(data, id); save(); render(); toast(dg.name + ' removed.', snap); } break;
+      case 'sampleReset':
+        if (confirm('Replace everything with practice data? Your current records will be replaced.')) { snap = snapshot(); var sb = SAMPLE.build(); data = sb.data; settings.currentEventId = sb.currentEventId; settings.org = SAMPLE.orgName; settings.sample = true; settings.welcome = true; save(); go('checkin'); toast('Practice data loaded.', snap); } break;
+      case 'fresh':
+        if (confirm('Erase all people, events and check-ins? Save a backup first if you may need them.')) { snap = snapshot(); data = C.emptyData(); settings.currentEventId = null; settings.sample = false; settings.welcome = false; save(); go('events'); toast('Everything erased. Start your first event.', snap); } break;
+    }
+  });
+  document.addEventListener('change', function (e) {
+    if (e.target.id !== 'file' || !e.target.files[0]) return;
+    var fr = new FileReader(); fr.onload = function () {
+      try {
+        var j = JSON.parse(fr.result), d = C.sanitize(j.data || j);
+        if (!d.guests.length && !d.events.length) throw new Error('empty');
+        if (!confirm('Replace your current records with this backup (' + d.guests.length + ' people, ' + d.events.length + ' events)?')) return;
+        var snap = snapshot(); data = d; settings.sample = false; settings.currentEventId = null; if (j.settings && j.settings.org) settings.org = j.settings.org; save(); go('checkin'); toast('Backup restored.', snap);
+      } catch (err) { toast('That file does not look like a check-in backup. Please choose a file saved with “Save a backup file”.'); }
+    }; fr.readAsText(e.target.files[0]);
+  });
+
+  render();
+  if (location.protocol.indexOf('http') === 0 && 'serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(function () {});
+})();
+
+</script>
+</body></html>
