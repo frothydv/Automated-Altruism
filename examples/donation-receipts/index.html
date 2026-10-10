@@ -1,0 +1,664 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="dark"><meta name="theme-color" content="#12161c"><title>Donor gifts and receipt letters</title>
+<style>html{background:#12161c}</style>
+<style>/* Print layout. Mark anything that should not print with class "noprint" (or "no-print"); anything only for paper with "print-only".
+   Screen colors are reset to black on white so printing works from dark mode too. */
+.print-only{display:none}
+@media print{
+  :root,:root.light{--bg:#fff;--card:#fff;--panel:#fff;--panel2:#fff;--field:#fff;--text:#000;--muted:#333;--line:#888}
+  html,body{background:#fff!important;color:#000!important;font-size:12pt}
+  .noprint,.no-print,nav.tabs,.toast,#toast,.modal,button{display:none!important}
+  .print-only{display:block!important}
+  .card,.res,tr{break-inside:avoid;box-shadow:none}
+  .print-break{break-before:page}
+  .print-page{break-after:page;page-break-after:always}.print-page:last-child{break-after:auto;page-break-after:auto}
+  body.printing-section .print-section:not(.print-this){display:none!important}
+  table{border-collapse:collapse}th,td{border:1px solid #000;padding:6px;text-align:left;vertical-align:top}
+}
+</style><style>:root{--bg:#12161c;--card:#1b222b;--line:#4a5663;--text:#f2f5f8;--muted:#b4bfcb;--accent:#5fd18a;--accentText:#08210f;--warn:#ffc857;--bad:#ff8a80;--field:#0e1217;--blue:#2f6fd0}
+:root.light{--bg:#f6f7f4;--card:#fff;--line:#7d8893;--text:#14181d;--muted:#46505b;--accent:#1f7a45;--accentText:#fff;--warn:#8a5a00;--bad:#b3261e;--field:#fff;--blue:#1c55b0}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--text);font:18px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+#app{max-width:820px;margin:0 auto;padding:10px 14px 96px}
+header.top{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:6px}
+header.top h1{font-size:1.15rem;margin:0;flex:1;min-width:150px}
+h2{font-size:1.3rem;margin:16px 0 8px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;margin:12px 0}
+.muted{color:var(--muted)}.small{font-size:.9rem}
+button,.btn{font:inherit;min-height:48px;padding:10px 16px;border-radius:12px;border:2px solid var(--line);background:var(--card);color:var(--text);cursor:pointer}
+button:focus-visible,input:focus-visible,select:focus-visible,a:focus-visible{outline:3px solid var(--warn);outline-offset:2px}
+button.primary{background:var(--accent);color:var(--accentText);border-color:var(--accent);font-weight:700}
+button.danger{border-color:var(--bad);color:var(--bad)}
+button.small{min-height:40px;padding:6px 12px;font-size:.95rem}
+button.link{border:0;background:none;text-decoration:underline;min-height:44px;padding:6px}
+nav.tabs{display:flex;gap:6px;position:fixed;bottom:0;left:0;right:0;background:var(--card);border-top:1px solid var(--line);padding:6px;justify-content:center;z-index:5}
+nav.tabs button{flex:1;max-width:200px;min-height:54px}
+nav.tabs button[aria-current=page]{background:var(--accent);color:var(--accentText);border-color:var(--accent);font-weight:700}
+label{display:block;font-weight:600;margin:12px 0 4px}
+input,select{font:inherit;width:100%;min-height:50px;padding:8px 12px;border-radius:10px;border:2px solid var(--line);background:var(--field);color:var(--text)}
+input.search{font-size:1.4rem;min-height:62px;border-color:var(--accent)}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
+.actions .primary{flex:1;min-height:58px;font-size:1.2rem}
+.evbar{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+.evbar b{font-size:1.1rem}
+.count{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.count .num{font-size:3rem;font-weight:800;line-height:1;color:var(--accent);font-variant-numeric:tabular-nums}
+.res{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap;border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin:8px 0;background:var(--card)}
+.res.here{border-color:var(--accent)}
+.res .who{flex:1;min-width:150px}.res .who b{font-size:1.2rem}
+.res .btns{display:flex;gap:8px;flex-wrap:wrap}
+.res .btns .primary{min-height:52px}
+.pill{display:inline-block;padding:2px 10px;border-radius:99px;font-weight:700;font-size:.85rem;border:2px solid var(--accent);color:var(--accent)}
+.alert{border-left:6px solid var(--warn);padding:10px 14px;background:var(--card);border-radius:10px;margin:12px 0}
+.alert.ok{border-left-color:var(--accent)}
+.sample{background:var(--warn);color:#201500;padding:6px 12px;border-radius:10px;font-weight:600;font-size:.9rem;margin:6px 0}
+:root.light .sample{background:#ffe9b0}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:84px;background:var(--text);color:var(--bg);padding:12px 18px;border-radius:12px;z-index:9;display:flex;gap:14px;align-items:center;max-width:92vw}
+.toast button{min-height:40px;background:transparent;color:var(--bg);border-color:var(--bg)}
+.err{color:var(--bad);font-weight:600;margin-top:10px}
+.chips{display:flex;gap:8px;flex-wrap:wrap}.chips button{min-height:44px}
+.chips button[aria-pressed=true]{background:var(--accent);color:var(--accentText);border-color:var(--accent)}
+.sr{position:absolute;left:-9999px}
+.namerow{display:flex;gap:8px;margin:8px 0}.namerow input{flex:1}
+ol.steps{padding-left:22px}ol.steps li{margin:6px 0}
+table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:8px;border-bottom:1px solid var(--line)}th{color:var(--muted);font-size:.9rem}
+@media(max-width:560px){.row2{grid-template-columns:1fr}.count .num{font-size:2.5rem}}
+textarea{font:inherit;width:100%;min-height:90px;padding:8px 12px;border-radius:10px;border:2px solid var(--line);background:var(--field);color:var(--text)}
+details{margin:10px 0}summary{cursor:pointer;min-height:44px;padding:10px 0;font-weight:600}
+.sugg button{display:block;width:100%;text-align:left;margin:6px 0}
+.paper{background:#fff;color:#000;border:1px solid #999;border-radius:6px;padding:28px 34px;margin:14px 0;font:12pt/1.45 Georgia,"Times New Roman",serif;overflow-x:auto}
+.paper .lh{white-space:pre-line;text-align:center;font-weight:700;border-bottom:2px solid #000;padding-bottom:10px;margin-bottom:18px}
+.paper p,.paper div{margin:0 0 .8em}.paper .addr{white-space:pre-line}
+.paper table{width:100%;border-collapse:collapse;margin:.8em 0}.paper th,.paper td{border-bottom:1px solid #777;padding:4px 6px;color:#000}.paper td.amt,.paper th.amt{text-align:right}
+@media print{@page{margin:0.8in}.paper{border:0;padding:0;margin:0;break-after:page;page-break-after:always;overflow:visible}.paper:last-child{break-after:auto;page-break-after:auto}}
+</style></head>
+<body><div id="app"></div><noscript>This page needs JavaScript turned on to work.</noscript>
+<script>
+/* Dark/light theme toggle. Dark is the default; light adds class "light" to <html>.
+   The app keeps the choice in its own settings object ({theme: 'dark'|'light'}) and saves it however it likes.
+   API: ToolkitTheme.apply(theme)  ToolkitTheme.toggle(settings) -> new theme (also applies it; caller saves settings)
+        ToolkitTheme.button(theme) -> html for the button, clicks are handled by the app on [data-act=theme] */
+(function (root) {
+  'use strict';
+  function apply(theme) {
+    var light = theme === 'light', d = root.document;
+    d.documentElement.classList.toggle('light', light);
+    var m = d.querySelector('meta[name=color-scheme]'); if (m) m.setAttribute('content', light ? 'light' : 'dark');
+    var tc = d.querySelector('meta[name=theme-color]'); if (tc) tc.setAttribute('content', light ? '#f6f7f4' : '#12161c');
+  }
+  function toggle(settings) { settings.theme = settings.theme === 'light' ? 'dark' : 'light'; apply(settings.theme); return settings.theme; }
+  function button(theme) {
+    return '<button class="small" type="button" data-act="theme" aria-label="Switch between dark and light colors">' + (theme === 'light' ? '🌙 Dark' : '☀️ Light') + '</button>';
+  }
+  var api = { apply: apply, toggle: toggle, button: button };
+  root.ToolkitTheme = api;
+  if (typeof module !== 'undefined' && module.exports) module.exports = api;
+})(typeof window !== 'undefined' ? window : globalThis);
+
+</script><script>
+/* Saves text as a file in the browser's Downloads folder (no server). ToolkitDownload.save(filename, text, mimeType). */
+(function (root) {
+  'use strict';
+  function save(name, text, type) {
+    var d = root.document, a = d.createElement('a');
+    a.href = URL.createObjectURL(new Blob([text], { type: type || 'text/plain' })); a.download = name; d.body.appendChild(a); a.click();
+    setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 500);
+  }
+  root.ToolkitDownload = { save: save };
+  if (typeof module !== 'undefined' && module.exports) module.exports = root.ToolkitDownload;
+})(typeof window !== 'undefined' ? window : globalThis);
+
+</script><script>
+/* CSV export for spreadsheets. Works in the browser and in Node (core logic can require it).
+   cell(v)  - one safe cell: quotes when needed, and defuses leading = + - @ so spreadsheets never run it as a formula
+   fromRows(rows) - array of arrays -> CSV text with Windows line breaks
+   download(filename, rows) - saves the file with a byte-order mark so Excel shows accents correctly (needs file-download) */
+(function (root) {
+  'use strict';
+  function cell(v) { v = String(v == null ? '' : v); if (/^[=+\-@]/.test(v)) v = "'" + v; return /[",\n\r]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; }
+  function fromRows(rows) { return rows.map(function (r) { return r.map(cell).join(','); }).join('\r\n'); }
+  function download(name, rows) { root.ToolkitDownload.save(name, '﻿' + fromRows(rows), 'text/csv'); }
+  var api = { cell: cell, fromRows: fromRows, download: download };
+  root.ToolkitCsv = api;
+  if (typeof module !== 'undefined' && module.exports) module.exports = api;
+})(typeof window !== 'undefined' ? window : globalThis);
+
+</script><script>
+/* Forgiving dates for forms. ToolkitDates.parse('10/9/26') -> '2026-10-09' (or '' if it is not a date).
+   Accepts 2026-10-09, 10/9/2026, 10/9/26, 10-9 (this year), "Oct 9 2026", "9 Oct 2026", and month + year only
+   ("10/2027", "Oct 2027") which means the LAST day of that month (how best-by dates on cans are usually read).
+   Also: iso(Date), today(), addDays(iso, n), daysBetween(fromIso, toIso), describe(days). Works in browser and Node. */
+(function (root) {
+  'use strict';
+  var MONTHS = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
+  function pad(n) { return (n < 10 ? '0' : '') + n; }
+  function iso(d) { return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); }
+  function today() { return iso(new Date()); }
+  function addDays(s, n) { var d = new Date(s + 'T12:00:00'); d.setDate(d.getDate() + n); return iso(d); }
+  function daysBetween(a, b) { return Math.round((new Date(b + 'T12:00:00') - new Date(a + 'T12:00:00')) / 86400000); }
+  function build(y, mo, d) {
+    if (y < 100) y += 2000;
+    var dt = new Date(y, mo - 1, d);
+    return dt.getFullYear() === y && dt.getMonth() === mo - 1 && dt.getDate() === d ? iso(dt) : '';
+  }
+  function monthNum(w) { var i = MONTHS.indexOf(String(w).slice(0, 3).toLowerCase()); return i < 0 ? 0 : i + 1; }
+  function lastDay(y, mo) { if (y < 100) y += 2000; return new Date(y, mo, 0).getDate(); }
+
+  function parse(s) {
+    s = String(s == null ? '' : s).replace(/[,\s]+/g, ' ').trim(); if (!s) return '';
+    var m, y = new Date().getFullYear();
+    if ((m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/))) return build(+m[1], +m[2], +m[3]);
+    if ((m = s.match(/^(\d{1,2})[\/.-](\d{4})$/))) return +m[1] >= 1 && +m[1] <= 12 ? build(+m[2], +m[1], lastDay(+m[2], +m[1])) : '';
+    if ((m = s.match(/^(\d{1,2})[\/.-](\d{1,2})(?:[\/.-](\d{2}|\d{4}))?$/))) return build(m[3] ? +m[3] : y, +m[1], +m[2]);
+    if ((m = s.match(/^([A-Za-z]{3,9})\.? (\d{4})$/)) && monthNum(m[1])) return build(+m[2], monthNum(m[1]), lastDay(+m[2], monthNum(m[1])));
+    if ((m = s.match(/^([A-Za-z]{3,9})\.? (\d{1,2})(?: (\d{2}|\d{4}))?$/)) && monthNum(m[1])) return build(m[3] ? +m[3] : y, monthNum(m[1]), +m[2]);
+    if ((m = s.match(/^(\d{1,2}) ([A-Za-z]{3,9})\.?(?: (\d{2}|\d{4}))?$/)) && monthNum(m[2])) return build(m[3] ? +m[3] : y, monthNum(m[2]), +m[1]);
+    return '';
+  }
+
+  /* 3 -> "3 days left", 1 -> "1 day left", 0 -> "today", -2 -> "2 days past" */
+  function describe(days) {
+    if (days === 0) return 'today';
+    var n = Math.abs(days); return n + (n === 1 ? ' day ' : ' days ') + (days > 0 ? 'left' : 'past');
+  }
+
+  root.ToolkitDates = { parse: parse, iso: iso, today: today, addDays: addDays, daysBetween: daysBetween, describe: describe };
+  if (typeof module !== 'undefined' && module.exports) module.exports = root.ToolkitDates;
+})(typeof window !== 'undefined' ? window : globalThis);
+
+</script><script>
+/* One-click backup and restore as a small .json file (needs file-download).
+   save({app, filename, data, settings}) - downloads {app, savedAt, settings, data}
+   read(file, cb) - cb(null, {data, settings, app}) or cb(error). Also accepts older backups (bare data, or {data, org}).
+   The app then validates `data` with its own sanitize(), asks "Replace what you have?" and offers undo.
+   fileInput(id) - html for the hidden file chooser; pick(id) opens it. */
+(function (root) {
+  'use strict';
+  function save(o) {
+    root.ToolkitDownload.save(o.filename, JSON.stringify({ app: o.app || '', savedAt: new Date().toISOString(), settings: o.settings || {}, data: o.data }, null, 1), 'application/json');
+  }
+  function parse(text) {
+    var j = JSON.parse(text); if (!j || typeof j !== 'object') throw new Error('not a backup');
+    var settings = j.settings && typeof j.settings === 'object' ? j.settings : (j.org ? { org: j.org } : {});
+    return { data: j.data || j, settings: settings, app: j.app || '' };
+  }
+  function read(file, cb) {
+    var fr = new FileReader();
+    fr.onload = function () { var r; try { r = parse(fr.result); } catch (e) { return cb(e); } cb(null, r); };
+    fr.onerror = function () { cb(new Error('could not read file')); };
+    fr.readAsText(file);
+  }
+  function fileInput(id) { return '<input id="' + id + '" type="file" accept=".json,application/json" class="sr" tabindex="-1" aria-label="Choose backup file">'; }
+  function pick(id) { root.document.getElementById(id).click(); }
+  var api = { save: save, parse: parse, read: read, fileInput: fileInput, pick: pick };
+  root.ToolkitBackup = api;
+  if (typeof module !== 'undefined' && module.exports) module.exports = api;
+})(typeof window !== 'undefined' ? window : globalThis);
+
+</script><script>
+/* ToolkitPrint.print(title) opens the browser print window; the title becomes the suggested file name when saving as PDF. */
+(function (root) {
+  'use strict';
+  function print(title) {
+    var d = root.document, old = d.title; if (title) d.title = title;
+    try { root.print(); } finally { d.title = old; }
+  }
+  /* Print just one part of the page: mark each part class="print-section" and give the one to print data-section="name". */
+  function printSection(title, name) {
+    var d = root.document, els = d.querySelectorAll('.print-section'), i;
+    for (i = 0; i < els.length; i++) if (els[i].getAttribute('data-section') === name) els[i].classList.add('print-this');
+    d.body.classList.add('printing-section');
+    try { print(title); } finally {
+      d.body.classList.remove('printing-section');
+      for (i = 0; i < els.length; i++) els[i].classList.remove('print-this');
+    }
+  }
+  root.ToolkitPrint = { print: print, printSection: printSection };
+  if (typeof module !== 'undefined' && module.exports) module.exports = root.ToolkitPrint;
+})(typeof window !== 'undefined' ? window : globalThis);
+
+</script><script>
+/* Guided first-run welcome: a short "do these 2-3 things first" panel.
+   ToolkitWelcome.html({title, intro, steps:[...], doneLabel, doneAct, card:true}) -> html string.
+   steps/intro are trusted html written by the app author (use <b> for the thing to tap). The done button carries data-act=doneAct
+   (default "welcomeOff"); the app hides the welcome, remembers that in its settings, and offers "Show the welcome again" somewhere under More. */
+(function (root) {
+  'use strict';
+  function html(o) {
+    var inner = '<h2' + (o.card === false ? '' : ' style="margin-top:0"') + '>' + (o.title || 'Welcome!') + '</h2>' + (o.intro ? '<p>' + o.intro + '</p>' : '') +
+      '<ol class="steps">' + (o.steps || []).map(function (s) { return '<li>' + s + '</li>'; }).join('') + '</ol>' +
+      '<button class="primary" type="button" data-act="' + (o.doneAct || 'welcomeOff') + '">' + (o.doneLabel || 'Got it, let’s start') + '</button>';
+    return o.card === false ? inner : '<div class="card" role="region" aria-label="Welcome">' + inner + '</div>';
+  }
+  root.ToolkitWelcome = { html: html };
+  if (typeof module !== 'undefined' && module.exports) module.exports = root.ToolkitWelcome;
+})(typeof window !== 'undefined' ? window : globalThis);
+
+</script><script>
+/* Type-ahead search helpers. Works in the browser and in Node.
+   ToolkitSearch.norm(s)            lower-case, accents removed, punctuation -> spaces
+   ToolkitSearch.tokens(q, stop)    words typed by the person, minus filler words (default: on in the a for at and of open me i need)
+   ToolkitSearch.wordPrefix(t, text) true when t starts one of the words in text ("pan" finds "Pantry")
+   ToolkitSearch.matchAll(tokens, textOrFn) true when EVERY token starts a word of the text (or fn(token) is true)
+   Meant for small lists (hundreds of rows): no index, just a fast scan on every keystroke. */
+(function (root) {
+  'use strict';
+  var STOP = 'on in the a an for at and of open me i need to near some';
+  function norm(s) {
+    s = String(s == null ? '' : s).toLowerCase();
+    if (s.normalize) s = s.normalize('NFD').replace(/[̀-ͯ]/g, '');
+    return s.replace(/[^a-z0-9]+/g, ' ').trim();
+  }
+  function tokens(q, stop) {
+    var st = {}; (stop == null ? STOP : stop).split(' ').forEach(function (w) { if (w) st[w] = 1; });
+    return norm(q).split(' ').filter(function (w) { return w && !st[w]; });
+  }
+  function wordPrefix(t, text) { return (' ' + norm(text)).indexOf(' ' + t) >= 0; }
+  function matchAll(toks, test) {
+    for (var i = 0; i < toks.length; i++) {
+      var ok = typeof test === 'function' ? test(toks[i]) : wordPrefix(toks[i], test);
+      if (!ok) return false;
+    }
+    return true;
+  }
+  var api = { norm: norm, tokens: tokens, wordPrefix: wordPrefix, matchAll: matchAll };
+  root.ToolkitSearch = api;
+  if (typeof module !== 'undefined' && module.exports) module.exports = api;
+})(typeof window !== 'undefined' ? window : globalThis);
+
+</script><script>
+/* Donor gift log + year-end receipt letters. Pure logic, no page access; works in the browser (global Donors) and in Node.
+   Data: {donors:[{id,name,address}], gifts:[{id,donorId,date,kind:'cash'|'goods',cents,desc,returned}]}
+   Money is kept in whole cents. `returned` is an optional note of anything the donor got back (a dinner ticket), with its estimated value. */
+(function (root) {
+  'use strict';
+  var MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+  var DEFAULTS = {
+    org: '', letterhead: '', signer: '', signerTitle: '', ein: '', letterDate: '', onlyNeeded: false,
+    intro: 'Thank you for your generous support of {org} in {year}. This letter is your record of what we received from you between January 1 and December 31, {year}.',
+    cashNote: 'Cash gifts total {total}.',
+    goodsNote: 'Donated goods are described above. {org} does not put a dollar value on donated goods; if you itemize, you are responsible for deciding their fair market value.',
+    nothingReturned: 'No goods or services were provided to you in exchange for {these}.',
+    taxLine: '{org} is a tax-exempt organization under section 501(c)(3) of the Internal Revenue Code{ein}. Please keep this letter with your tax records.',
+    closing: 'With gratitude,'
+  };
+  var uid = 0;
+  function newId(p) { uid++; return p + Date.now().toString(36) + uid.toString(36) + Math.random().toString(36).slice(2, 5); }
+  function emptyData() { return { donors: [], gifts: [] }; }
+  function tidyName(s) {
+    s = String(s == null ? '' : s).replace(/\s+/g, ' ').trim();
+    var m = s.match(/^([^,]+),\s*([^,]+)$/); if (m && !/\b(inc|llc|co|corp|ltd)\b\.?$/i.test(s)) s = m[2] + ' ' + m[1];
+    return s.replace(/(^|[\s\-'(])([a-zà-ÿ])/g, function (_, a, b) { return a + b.toUpperCase(); }).replace(/\bMc([a-z])/g, function (_, c) { return 'Mc' + c.toUpperCase(); });
+  }
+  function key(s) { return String(s || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim(); }
+  /* "$1,250", "25.5", "1 250" -> cents, or null if not an amount above zero */
+  function parseMoney(s) {
+    if (typeof s === 'number') return s > 0 && isFinite(s) ? Math.round(s * 100) : null;
+    var t = String(s == null ? '' : s).replace(/[$\s]/g, ''); if (!t) return null;
+    if (/^\d{1,3}(\.\d{3})+,\d{1,2}$/.test(t)) t = t.replace(/\./g, '').replace(',', '.');
+    t = t.replace(/,(?=\d{3}(\D|$))/g, '').replace(',', '.');
+    if (!/^\d*\.?\d+$|^\d+\.$/.test(t)) return null;
+    var c = Math.round(parseFloat(t) * 100); return c > 0 && c < 1e12 ? c : null;
+  }
+  function money(c) { var n = c / 100, neg = n < 0; n = Math.abs(n); var s = n.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ','); return (neg ? '-' : '') + '$' + s; }
+  function fmtDate(iso) { var m = /^(\d{4})-(\d\d)-(\d\d)$/.exec(iso || ''); return m ? MONTHS[+m[2] - 1] + ' ' + (+m[3]) + ', ' + m[1] : String(iso || ''); }
+  function yearOf(g) { return +String(g.date).slice(0, 4); }
+
+  function findDonor(d, name) { var k = key(name); for (var i = 0; i < d.donors.length; i++) if (key(d.donors[i].name) === k) return d.donors[i]; return null; }
+  function addDonor(d, name, address) {
+    name = tidyName(name); if (!name) return { error: 'Please type the donor’s name.' };
+    var ex = findDonor(d, name); if (ex) return { donor: ex, existed: true };
+    var dn = { id: newId('d'), name: name, address: String(address || '').replace(/\r/g, '').trim() }; d.donors.push(dn); return { donor: dn };
+  }
+  /* o: {donorId, date(iso), kind, amount (text or cents-number via cents), desc, returned} */
+  function addGift(d, o) {
+    var donor = d.donors.filter(function (x) { return x.id === o.donorId; })[0]; if (!donor) return { error: 'Choose who gave the gift.' };
+    if (!/^\d{4}-\d\d-\d\d$/.test(o.date || '')) return { error: 'Please type the date of the gift, like 12/15/2026.' };
+    var g = { id: newId('g'), donorId: donor.id, date: o.date, kind: o.kind === 'goods' ? 'goods' : 'cash', cents: 0, desc: String(o.desc || '').trim(), returned: String(o.returned || '').trim() };
+    if (g.kind === 'cash') { g.cents = parseMoney(o.amount); if (!g.cents) return { error: 'Please type the amount, like 50 or 25.50.' }; }
+    else if (!g.desc) return { error: 'Please describe the goods, like “12 cans of soup”.' };
+    d.gifts.push(g); return { gift: g };
+  }
+  function updateGift(d, id, o) {
+    var g = d.gifts.filter(function (x) { return x.id === id; })[0]; if (!g) return { error: 'Gift not found.' };
+    var tmp = { donors: d.donors, gifts: [] }, r = addGift(tmp, { donorId: o.donorId || g.donorId, date: o.date, kind: o.kind, amount: o.amount, desc: o.desc, returned: o.returned });
+    if (r.error) return r; var n = r.gift; n.id = g.id; d.gifts[d.gifts.indexOf(g)] = n; return { gift: n };
+  }
+  function removeGift(d, id) { var n = d.gifts.length; d.gifts = d.gifts.filter(function (g) { return g.id !== id; }); return d.gifts.length < n; }
+  function removeDonor(d, id) { d.donors = d.donors.filter(function (x) { return x.id !== id; }); d.gifts = d.gifts.filter(function (g) { return g.donorId !== id; }); }
+  function renameDonor(d, id, name, address) {
+    var x = d.donors.filter(function (z) { return z.id === id; })[0]; if (!x) return { error: 'Not found.' };
+    name = tidyName(name); if (!name) return { error: 'Please type the donor’s name.' };
+    var ex = findDonor(d, name); if (ex && ex.id !== id) return { error: 'Someone else already has that name. Use Merge instead.' };
+    x.name = name; if (address != null) x.address = String(address).replace(/\r/g, '').trim(); return { donor: x };
+  }
+  /* Type-ahead: every typed word must start a word of the name. Needs ToolkitSearch if present, else a simple fallback. */
+  function search(d, q, limit) {
+    var S = root.ToolkitSearch || (typeof require === 'function' ? require('../../components/typeahead-search/search.js') : null);
+    var toks = S.tokens(q, ''); if (!toks.length) return [];
+    return d.donors.filter(function (x) { return S.matchAll(toks, x.name); }).sort(function (a, b) { return a.name.localeCompare(b.name); }).slice(0, limit || 8);
+  }
+  function giftsFor(d, donorId, year) {
+    return d.gifts.filter(function (g) { return g.donorId === donorId && (year == null || yearOf(g) === year); }).sort(function (a, b) { return a.date < b.date ? -1 : a.date > b.date ? 1 : 0; });
+  }
+  function years(d) { var s = {}; d.gifts.forEach(function (g) { s[yearOf(g)] = 1; }); return Object.keys(s).map(Number).sort(function (a, b) { return b - a; }); }
+  function needsLetter(gifts) { return gifts.some(function (g) { return g.kind === 'goods' || g.cents >= 25000; }); }
+  /* One entry per donor who gave in that year, A-Z. */
+  function yearSummary(d, year, onlyNeeded) {
+    var out = [];
+    d.donors.forEach(function (dn) {
+      var gs = giftsFor(d, dn.id, year); if (!gs.length) return;
+      var cash = gs.reduce(function (s, g) { return s + (g.kind === 'cash' ? g.cents : 0); }, 0), goods = gs.filter(function (g) { return g.kind === 'goods'; }).length;
+      var need = needsLetter(gs); if (onlyNeeded && !need) return;
+      out.push({ donor: dn, gifts: gs, cash: cash, goods: goods, needed: need });
+    });
+    return out.sort(function (a, b) { return a.donor.name.localeCompare(b.donor.name); });
+  }
+  function fill(t, v) { return String(t).replace(/\{(\w+)\}/g, function (m, k) { return v[k] != null ? v[k] : m; }); }
+  /* The letter as plain data so any screen/printer can lay it out:
+     {letterhead, date, addressee:[lines], greeting, paragraphs:[], rows:[{date,what,amount}], notes:[], taxLine, closing, signer:[lines]} */
+  function letter(d, s, donorId, year) {
+    s = Object.assign({}, DEFAULTS, s || {});
+    var dn = d.donors.filter(function (x) { return x.id === donorId; })[0], gs = giftsFor(d, donorId, year); if (!dn || !gs.length) return null;
+    var org = s.org || 'our organization', cash = gs.reduce(function (t, g) { return t + (g.kind === 'cash' ? g.cents : 0); }, 0);
+    var hasCash = gs.some(function (g) { return g.kind === 'cash'; }), hasGoods = gs.some(function (g) { return g.kind === 'goods'; });
+    var v = { org: org, year: year, total: money(cash), ein: s.ein ? ' (EIN ' + s.ein + ')' : '', these: gs.length > 1 ? 'these gifts' : 'this gift' };
+    var rows = gs.map(function (g) { return { date: fmtDate(g.date), what: g.kind === 'cash' ? 'Cash gift' + (g.desc ? ' (' + g.desc + ')' : '') : 'Donated goods: ' + g.desc, amount: g.kind === 'cash' ? money(g.cents) : 'Goods' }; });
+    var notes = [];
+    if (hasCash && gs.length > 1) notes.push(fill(s.cashNote, v));
+    if (hasGoods) notes.push(fill(s.goodsNote, v));
+    var ret = gs.filter(function (g) { return g.returned; });
+    if (ret.length) {
+      ret.forEach(function (g) { notes.push('In exchange for the gift on ' + fmtDate(g.date) + ', we provided: ' + g.returned + '.'); });
+      if (ret.length < gs.length) notes.push(fill(s.nothingReturned, { these: 'the other gifts' }));
+    } else notes.push(fill(s.nothingReturned, v));
+    var ld = s.letterDate && /^\d{4}-\d\d-\d\d$/.test(s.letterDate) ? s.letterDate : null;
+    return {
+      donor: dn, year: year, letterhead: s.letterhead || org, date: ld ? fmtDate(ld) : '', addressee: [dn.name].concat(dn.address ? dn.address.split('\n') : []),
+      greeting: 'Dear ' + dn.name + ',', paragraphs: [fill(s.intro, v)], rows: rows, notes: notes, taxLine: fill(s.taxLine, v), closing: s.closing,
+      signer: [s.signer, s.signerTitle].filter(Boolean)
+    };
+  }
+  function csvRows(d, year) {
+    var rows = [['Date', 'Donor', 'Cash or goods', 'Amount', 'Description', 'Given in return']];
+    d.gifts.filter(function (g) { return year == null || yearOf(g) === year; }).sort(function (a, b) { return a.date < b.date ? -1 : 1; }).forEach(function (g) {
+      var dn = d.donors.filter(function (x) { return x.id === g.donorId; })[0];
+      rows.push([g.date, dn ? dn.name : '', g.kind === 'cash' ? 'Cash' : 'Goods', g.kind === 'cash' ? (g.cents / 100).toFixed(2) : '', g.desc, g.returned]);
+    });
+    return rows;
+  }
+  function sanitize(x) {
+    var d = emptyData(); if (!x || typeof x !== 'object') return d; var ids = {};
+    (Array.isArray(x.donors) ? x.donors : []).forEach(function (o) { if (o && o.id != null && String(o.name || '').trim()) { var id = String(o.id); ids[id] = 1; d.donors.push({ id: id, name: String(o.name).trim(), address: String(o.address || '') }); } });
+    (Array.isArray(x.gifts) ? x.gifts : []).forEach(function (g) {
+      if (!g || !ids[String(g.donorId)] || !/^\d{4}-\d\d-\d\d$/.test(g.date || '')) return;
+      var kind = g.kind === 'goods' ? 'goods' : 'cash', c = Math.round(+g.cents || 0); if (kind === 'cash' && !(c > 0)) return;
+      d.gifts.push({ id: String(g.id || newId('g')), donorId: String(g.donorId), date: g.date, kind: kind, cents: kind === 'cash' ? c : 0, desc: String(g.desc || ''), returned: String(g.returned || '') });
+    });
+    return d;
+  }
+  var api = { DEFAULTS: DEFAULTS, emptyData: emptyData, tidyName: tidyName, parseMoney: parseMoney, money: money, fmtDate: fmtDate, yearOf: yearOf, findDonor: findDonor, addDonor: addDonor, addGift: addGift,
+    updateGift: updateGift, removeGift: removeGift, removeDonor: removeDonor, renameDonor: renameDonor, search: search, giftsFor: giftsFor, years: years, needsLetter: needsLetter,
+    yearSummary: yearSummary, letter: letter, csvRows: csvRows, sanitize: sanitize };
+  root.Donors = api; if (typeof module !== 'undefined' && module.exports) module.exports = api;
+})(typeof window !== 'undefined' ? window : globalThis);
+
+</script><script>
+/* Made-up practice data: invented people and businesses only. Years are relative to today so the demo always has "last year" gifts. */
+(function (root) {
+  'use strict';
+  function build() {
+    var D = root.Donors, d = D.emptyData(), y = new Date().getFullYear() - 1;
+    var P = [['Grace Bellamy', '12 Maple Lane\nSpringfield, XX 00000'], ['Tomas Okafor', '48 Orchard Road\nSpringfield, XX 00000'], ['Priya Rahman', '7 Willow Court\nSpringfield, XX 00000'],
+      ['Walter & June Castillo', '301 Elm Street\nSpringfield, XX 00000'], ['Delgado Hardware', '100 Main Street\nSpringfield, XX 00000'], ['Maple Street Bakery', '2 Main Street\nSpringfield, XX 00000'], ['Ida Lindqvist', '9 Birch Way\nSpringfield, XX 00000']];
+    var id = {}; P.forEach(function (p) { id[p[0]] = D.addDonor(d, p[0], p[1]).donor.id; });
+    function g(n, date, kind, amt, desc, ret) { D.addGift(d, { donorId: id[n], date: date, kind: kind, amount: amt, desc: desc, returned: ret }); }
+    g('Grace Bellamy', y + '-03-04', 'cash', '50'); g('Grace Bellamy', y + '-06-10', 'cash', '50'); g('Grace Bellamy', y + '-12-02', 'cash', '200');
+    g('Tomas Okafor', y + '-05-19', 'cash', '25'); g('Priya Rahman', y + '-11-23', 'goods', '', '4 boxes of pasta and 12 cans of tomatoes');
+    g('Walter & June Castillo', y + '-04-14', 'cash', '$1,000'); g('Walter & June Castillo', y + '-12-20', 'goods', '', 'Two turkeys and a bag of potatoes');
+    g('Delgado Hardware', y + '-08-30', 'goods', '', '3 folding tables for the distribution room'); g('Delgado Hardware', y + '-10-01', 'cash', '500', '', 'Dinner for two at the fall supper (estimated value $40)');
+    g('Maple Street Bakery', y + '-07-07', 'goods', '', '10 loaves of bread (weekly gift, July)'); g('Ida Lindqvist', y + '-09-15', 'cash', '15'); g('Ida Lindqvist', y + '-12-28', 'cash', '30');
+    g('Tomas Okafor', (y + 1) + '-01-02', 'cash', '20');
+    return d;
+  }
+  root.DonorSample = { orgName: 'Example Community Pantry', letterhead: 'Example Community Pantry\n1 Church Street, Springfield, XX 00000\nexample-pantry.example · 555-0100', signer: 'Pat Sample', signerTitle: 'Treasurer', ein: '00-0000000', build: build };
+})(typeof window !== 'undefined' ? window : globalThis);
+
+</script><script>
+/* This build's own layer: made-up example pantry wording for the showcase. Change inside the app (More), not here. */
+Object.assign(window.DonorSample, {
+  orgName: 'Example Community Pantry',
+  letterhead: 'Example Community Pantry\n1 Church Street, Springfield, XX 00000\nexample-pantry.example · 555-0100',
+  signer: 'Pat Sample', signerTitle: 'Treasurer', ein: '00-0000000'
+});
+
+</script><script>
+/* Browser storage adapter: load() -> data|null, save(data) -> bool, loadSettings(), saveSettings(obj). Data never leaves this device. */
+(function (root) {
+  'use strict';
+  var KEY = 'donorReceipts.data.v1', SKEY = 'donorReceipts.settings.v1', mem = {};
+  function get(k) { try { return localStorage.getItem(k); } catch (e) { return mem[k] || null; } }
+  function set(k, v) { try { localStorage.setItem(k, v); return true; } catch (e) { mem[k] = v; return false; } }
+  root.DonorStorage = {
+    name: 'browser',
+    load: function () { var r = get(KEY); if (!r) return null; try { return root.Donors.sanitize(JSON.parse(r)); } catch (e) { return null; } },
+    save: function (d) { return set(KEY, JSON.stringify(d)); },
+    loadSettings: function () { try { return JSON.parse(get(SKEY)) || {}; } catch (e) { return {}; } },
+    saveSettings: function (s) { return set(SKEY, JSON.stringify(s)); }
+  };
+})(window);
+
+</script><script>
+/* Donor gifts and receipt letters UI. Plain JS; talks to Donors (core) and DonorStorage (adapter). */
+(function () {
+  'use strict';
+  var C = window.Donors, S = window.DonorStorage, SAMPLE = window.DonorSample, Dt = window.ToolkitDates;
+  var settings = S.loadSettings(), data = S.load(), screen = 'log', toastTimer = null, storageOk = true;
+  var form = null, giftYear = null, letterYear = null, $app = document.getElementById('app');
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+  function fresh() { return { q: '', donorId: null, address: '', date: Dt.today(), kind: 'cash', amount: '', desc: '', returned: '', editId: null, err: '' }; }
+  function seed() {
+    data = SAMPLE.build(); settings.org = SAMPLE.orgName; settings.letterhead = SAMPLE.letterhead; settings.signer = SAMPLE.signer; settings.signerTitle = SAMPLE.signerTitle; settings.ein = SAMPLE.ein; settings.sample = true;
+    save();
+  }
+  if (!data) { seed(); settings.welcome = true; save(); }
+  form = fresh(); ToolkitTheme.apply(settings.theme);
+  function save() { storageOk = S.save(data); S.saveSettings(settings); }
+  function snapshot() { return JSON.stringify(data); }
+  function toast(msg, undoSnap) {
+    var old = document.getElementById('toast'); if (old) old.remove(); clearTimeout(toastTimer);
+    var t = document.createElement('div'); t.id = 'toast'; t.className = 'toast'; t.setAttribute('role', 'status');
+    t.innerHTML = '<span>' + esc(msg) + '</span>' + (undoSnap ? '<button type="button">Undo</button>' : '');
+    document.body.appendChild(t);
+    if (undoSnap) t.querySelector('button').onclick = function () { data = C.sanitize(JSON.parse(undoSnap)); save(); t.remove(); render(); };
+    toastTimer = setTimeout(function () { t.remove(); }, 8000);
+  }
+  function go(s) { screen = s; render(); window.scrollTo(0, 0); }
+  function donor(id) { return data.donors.filter(function (x) { return x.id === id; })[0]; }
+  function lastYear() { var ys = C.years(data), cur = new Date().getFullYear() - 1; return ys.indexOf(cur) >= 0 ? cur : (ys[0] || cur); }
+  function yearSelect(id, val) {
+    var ys = C.years(data); if (ys.indexOf(val) < 0) ys.unshift(val);
+    return '<select id="' + id + '" aria-label="Which year">' + ys.map(function (y) { return '<option' + (y === val ? ' selected' : '') + '>' + y + '</option>'; }).join('') + '</select>';
+  }
+
+  function header() {
+    return '<header class="top noprint"><h1>' + esc(settings.org || 'Donor gifts') + '</h1><span class="muted small" id="net">Saved on this device only</span>' + ToolkitTheme.button(settings.theme) + '</header>' +
+      (settings.sample ? '<div class="sample noprint">Practice mode: every donor here is made up. Go to More → “Start fresh” when you are ready for real gifts.</div>' : '') +
+      (storageOk ? '' : '<div class="alert noprint"><b>This browser is not saving.</b> Your gifts will be lost if you close this page. Open the page in a normal (not private) window.</div>');
+  }
+  function tabs() {
+    var t = [['log', '➕ Log a gift'], ['gifts', '📒 All gifts'], ['letters', '✉ Year-end letters'], ['more', '⋯ More']];
+    return '<nav class="tabs noprint" aria-label="Main">' + t.map(function (x) { return '<button type="button" data-act="tab" data-v="' + x[0] + '"' + (screen === x[0] ? ' aria-current="page"' : '') + '>' + x[1] + '</button>'; }).join('') + '</nav>';
+  }
+  function welcome() {
+    if (!settings.welcome) return '';
+    return ToolkitWelcome.html({ title: 'Welcome! Three things to try', steps: [
+      'Type <b>“gra”</b> in the donor box below, tap <b>Grace Bellamy</b>, type an amount and tap <b>Save this gift</b>.',
+      'Open <b>Year-end letters</b> to see last year’s letters, already written for every donor. Tap <b>Print all letters</b>.',
+      'Open <b>More</b> to put in your own letterhead, then <b>Start fresh</b> to clear the practice donors. Nothing ever leaves this device.'] });
+  }
+
+  function logScreen() {
+    var f = form, picked = f.donorId ? donor(f.donorId) : null;
+    return welcome() + '<h2>' + (f.editId ? 'Change this gift' : 'Log a gift') + '</h2><div class="card">' +
+      '<label for="q">Who gave it? Start typing a name</label>' +
+      (picked ? '<div class="res here"><div class="who"><b>' + esc(picked.name) + '</b></div><button class="small" type="button" data-act="unpick">Change donor</button></div>'
+        : '<input id="q" class="search" type="search" autocomplete="off" autocapitalize="words" spellcheck="false" value="' + esc(f.q) + '" placeholder="Donor name"><div id="sugg" class="sugg" aria-live="polite"></div>') +
+      '<div id="newdonor"></div>' +
+      '<div class="chips" role="group" aria-label="Kind of gift" style="margin-top:12px"><button type="button" data-act="kind" data-v="cash" aria-pressed="' + (f.kind === 'cash') + '">💵 Cash or check</button><button type="button" data-act="kind" data-v="goods" aria-pressed="' + (f.kind === 'goods') + '">🥫 Food or goods</button></div>' +
+      '<div class="row2"><div><label for="gd">Date of the gift</label><input id="gd" value="' + esc(f.date) + '" placeholder="12/15/2026"></div>' +
+      (f.kind === 'cash' ? '<div><label for="ga">Amount</label><input id="ga" inputmode="decimal" value="' + esc(f.amount) + '" placeholder="$50"></div>' : '') + '</div>' +
+      (f.kind === 'goods' ? '<label for="gx">What was given? (describe it, no dollar value)</label><input id="gx" value="' + esc(f.desc) + '" placeholder="12 cans of soup and 2 bags of rice">'
+        : '') +
+      '<details' + (f.returned || (f.kind === 'cash' && f.desc) ? ' open' : '') + '><summary>More options</summary>' +
+      (f.kind === 'cash' ? '<label for="gx">Note (like “memorial gift for …”, optional)</label><input id="gx" value="' + esc(f.desc) + '">' : '') +
+      '<label for="gr">Did they get something in return? (like a dinner ticket. Say what and its estimated value.)</label><input id="gr" value="' + esc(f.returned) + '" placeholder="Leave empty if nothing"></details>' +
+      '<div id="ferr" class="err" role="alert">' + esc(f.err) + '</div>' +
+      '<div class="actions"><button class="primary" type="button" data-act="saveGift">' + (f.editId ? 'Save changes' : 'Save this gift') + '</button>' + (f.editId ? '<button type="button" data-act="cancelEdit">Cancel</button>' : '') + '</div></div>' +
+      (f.editId ? '' : recent());
+  }
+  function recent() {
+    var gs = data.gifts.slice().sort(function (a, b) { return a.date < b.date ? 1 : -1; }).slice(0, 5);
+    return gs.length ? '<h2>Latest gifts</h2>' + gs.map(giftRow).join('') : '';
+  }
+  function paintSugg() {
+    var box = document.getElementById('sugg'), nd = document.getElementById('newdonor'); if (!box) return;
+    var q = form.q.trim(), res = q ? C.search(data, q, 6) : [], exact = q && C.findDonor(data, q);
+    box.innerHTML = res.map(function (x) { return '<button type="button" data-act="pick" data-id="' + x.id + '">' + esc(x.name) + '<span class="muted small"> ' + esc(x.address.split('\n')[0] || '') + '</span></button>'; }).join('') +
+      (q && !exact ? '<p class="muted">No exact match. Keep going and we will add “' + esc(C.tidyName(q)) + '” as a new donor.</p>' : '');
+    nd.innerHTML = q && !exact ? '<label for="addr">Mailing address for the letter (optional, add it any time)</label><textarea id="addr" placeholder="12 Maple Lane&#10;Springfield, XX 00000">' + esc(form.address) + '</textarea>' : '';
+  }
+  function giftRow(g) {
+    var dn = donor(g.donorId);
+    return '<div class="res"><div class="who"><b>' + esc(dn ? dn.name : '?') + '</b><div class="muted small">' + esc(C.fmtDate(g.date)) + ' · ' + (g.kind === 'cash' ? '<b>' + C.money(g.cents) + '</b>' + (g.desc ? ' · ' + esc(g.desc) : '') : '🥫 ' + esc(g.desc)) + (g.returned ? ' · gave back: ' + esc(g.returned) : '') + '</div></div>' +
+      '<div class="btns"><button class="small" type="button" data-act="editGift" data-id="' + g.id + '" aria-label="Change gift from ' + esc(dn ? dn.name : '') + '">Change</button><button class="small danger" type="button" data-act="delGift" data-id="' + g.id + '" aria-label="Delete gift from ' + esc(dn ? dn.name : '') + '">Delete</button></div></div>';
+  }
+  function giftsScreen() {
+    var y = giftYear || lastYear(), gs = data.gifts.filter(function (g) { return C.yearOf(g) === y; }).sort(function (a, b) { return a.date < b.date ? 1 : -1; });
+    var cash = gs.reduce(function (s, g) { return s + (g.kind === 'cash' ? g.cents : 0); }, 0);
+    return '<h2>All gifts</h2><div class="card"><label for="gy">Year</label>' + yearSelect('gy', y) + '<p><b>' + gs.length + '</b> gifts · cash total <b>' + C.money(cash) + '</b></p>' +
+      '<div class="actions" style="margin-top:0"><button type="button" data-act="csv">Download for spreadsheet</button></div></div>' + (gs.length ? gs.map(giftRow).join('') : '<p class="muted">No gifts in ' + y + ' yet.</p>');
+  }
+
+  function letterHtml(L) {
+    return '<section class="paper" aria-label="Letter for ' + esc(L.donor.name) + '"><div class="lh">' + esc(L.letterhead) + '</div>' + (L.date ? '<div>' + esc(L.date) + '</div>' : '') +
+      '<div class="addr">' + esc(L.addressee.join('\n')) + '</div><p>' + esc(L.greeting) + '</p>' + L.paragraphs.map(function (p) { return '<p>' + esc(p) + '</p>'; }).join('') +
+      '<table><thead><tr><th>Date</th><th>What we received</th><th class="amt">Amount</th></tr></thead><tbody>' + L.rows.map(function (r) { return '<tr><td>' + esc(r.date) + '</td><td>' + esc(r.what) + '</td><td class="amt">' + esc(r.amount) + '</td></tr>'; }).join('') + '</tbody></table>' +
+      L.notes.map(function (p) { return '<p>' + esc(p) + '</p>'; }).join('') + '<p>' + esc(L.taxLine) + '</p><p>' + esc(L.closing) + '</p><p style="margin-top:2.2em">' + L.signer.map(esc).join('<br>') + '</p></section>';
+  }
+  function lettersScreen() {
+    var y = letterYear || lastYear(), list = C.yearSummary(data, y, settings.onlyNeeded), all = C.yearSummary(data, y, false);
+    var noAddr = list.filter(function (r) { return !r.donor.address; }).length;
+    var ctl = '<div class="noprint"><h2>Year-end letters</h2><div class="card"><label for="ly">Letters for the year</label>' + yearSelect('ly', y) +
+      '<p style="margin-bottom:0"><b>' + list.length + '</b> letter' + (list.length === 1 ? '' : 's') + ' ready' + (all.length !== list.length ? ' (' + (all.length - list.length) + ' smaller donors skipped, see More options below)' : '') + '. One page each, in A–Z order.' + (noAddr ? ' <span class="muted">' + noAddr + ' have no mailing address yet.</span>' : '') + '</p>' +
+      '<div class="actions"><button class="primary" type="button" data-act="printLetters"' + (list.length ? '' : ' disabled') + '>🖨 Print all ' + list.length + ' letters</button></div>' +
+      '<details><summary>More options</summary><label style="font-weight:400"><input type="checkbox" id="only" style="width:auto;min-height:0" ' + (settings.onlyNeeded ? 'checked' : '') + '> Only print for donors who need one for taxes (a single cash gift of $250 or more, or any goods). Smaller donors still get a thank-you if you leave this unticked.</label>' +
+      '<label for="ldate">Date shown on the letters (optional; empty prints no date)</label><input id="ldate" value="' + esc(settings.letterDate ? C.fmtDate(settings.letterDate) : '') + '" placeholder="January 15, ' + (y + 1) + '"></details>' +
+      '<p class="muted small">Tip: in the print window choose “Save as PDF” to email letters instead. Check the wording in More → Letter wording once before the first print.</p></div></div>';
+    if (!list.length) return ctl + '<p class="muted noprint">No gifts in ' + y + ' yet.</p>';
+    return ctl + '<div id="letters">' + list.map(function (r) { return letterHtml(C.letter(data, settings, r.donor.id, y)); }).join('') + '</div>';
+  }
+
+  function moreScreen() {
+    var D = C.DEFAULTS, w = function (k, label) { return '<label for="w_' + k + '">' + label + '</label><textarea id="w_' + k + '" data-wk="' + k + '">' + esc(settings[k] != null ? settings[k] : D[k]) + '</textarea>'; };
+    return '<h2>Your letterhead</h2><div class="card"><label for="org">Organization name</label><input id="org" data-set="org" value="' + esc(settings.org || '') + '" placeholder="Your pantry or church">' +
+      '<label for="lh">Letterhead text (name, address, phone, website: shown at the top of each letter)</label><textarea id="lh" data-set="letterhead">' + esc(settings.letterhead || '') + '</textarea>' +
+      '<div class="row2"><div><label for="sg">Signed by</label><input id="sg" data-set="signer" value="' + esc(settings.signer || '') + '" placeholder="Pat Sample"></div><div><label for="st">Their title</label><input id="st" data-set="signerTitle" value="' + esc(settings.signerTitle || '') + '" placeholder="Treasurer"></div></div>' +
+      '<label for="ein">Tax ID number (EIN), optional</label><input id="ein" data-set="ein" value="' + esc(settings.ein || '') + '" placeholder="00-0000000"><p class="muted small">Saved as you type.</p>' +
+      '<details><summary>Letter wording (advanced)</summary><div class="alert">Check this wording against the IRS rules (Publication 1771) or with your accountant. A letter for a gift of $250 or more should say who it is from, the cash amount or a description (not a value) of goods, and whether anything was given in return. <b>{org} {year} {total} {ein} {these}</b> are filled in for you.</div>' +
+      w('intro', 'Opening') + w('cashNote', 'Cash total line') + w('goodsNote', 'Donated goods (we describe, we do not put a value)') + w('nothingReturned', 'Nothing given in return') + w('taxLine', 'Tax-exempt line') + w('closing', 'Closing') +
+      '<div class="actions"><button type="button" data-act="wordsReset">Put the standard wording back</button></div></details></div>' +
+      '<h2>Donors</h2><div class="card"><p>' + data.donors.length + ' donors. Fix a name or address, or remove someone:</p><label for="pq">Find a donor</label><input id="pq" type="search" autocomplete="off"><div id="plist"></div></div>' +
+      '<h2>Keep your records safe</h2><div class="card"><div class="actions" style="margin-top:0"><button class="primary" type="button" data-act="backup">Save a backup file</button><button type="button" data-act="restore">Restore from a backup</button></div>' + ToolkitBackup.fileInput('file') +
+      '<p class="muted small">Names and gift amounts are private. They are stored only in this browser on this device and are never uploaded. The backup is a small file for a USB stick; keep it somewhere private. Your letterhead is included.</p></div>' +
+      '<h2>More options</h2><div class="card"><div class="actions" style="margin-top:0"><button type="button" data-act="csvAll">Download every gift for a spreadsheet</button><button type="button" data-act="welcomeOn">Show the welcome again</button><button type="button" data-act="sampleReset">Start over with practice data</button><button class="danger" type="button" data-act="fresh">Start fresh (clear everything)</button></div><p class="muted small">Both “start” buttons ask first and offer undo.</p></div>';
+  }
+  function paintPeople() {
+    var box = document.getElementById('plist'), q = document.getElementById('pq'); if (!box) return;
+    box.innerHTML = C.search(data, q.value, 8).map(function (x) {
+      return '<div class="res"><div class="who"><b>' + esc(x.name) + '</b><div class="muted small">' + esc((x.address || 'no address yet').replace(/\n/g, ', ')) + '</div></div><div class="btns"><button class="small" type="button" data-act="editDonor" data-id="' + x.id + '" aria-label="Edit ' + esc(x.name) + '">Edit</button><button class="small danger" type="button" data-act="delDonor" data-id="' + x.id + '" aria-label="Remove ' + esc(x.name) + '">Remove</button></div></div>';
+    }).join('');
+  }
+
+  function render() {
+    var body = screen === 'log' ? logScreen() : screen === 'gifts' ? giftsScreen() : screen === 'letters' ? lettersScreen() : moreScreen();
+    $app.innerHTML = header() + '<main>' + body + '</main>' + tabs();
+    paintSugg(); paintPeople();
+    var q = document.getElementById('q'); if (q && !settings.welcome) { try { q.focus({ preventScroll: true }); var n = q.value.length; q.setSelectionRange(n, n); } catch (e) {} }
+  }
+  function readForm() {
+    var g = function (id) { var e = document.getElementById(id); return e ? e.value : null; };
+    if (g('gd') != null) form.date = g('gd'); if (g('ga') != null) form.amount = g('ga'); if (g('gx') != null) form.desc = g('gx'); if (g('gr') != null) form.returned = g('gr'); if (g('addr') != null) form.address = g('addr');
+  }
+  function saveGift() {
+    readForm();
+    var snap = snapshot(), id = form.donorId, date = Dt.parse(form.date);
+    if (!id) {
+      if (!form.q.trim()) { form.err = 'Please type who gave the gift.'; return render(); }
+      var r = C.addDonor(data, form.q, form.address); if (r.error) { form.err = r.error; return render(); } id = r.donor.id;
+      if (r.existed && form.address.trim() && !r.donor.address) r.donor.address = form.address.trim();
+    }
+    var o = { donorId: id, date: date, kind: form.kind, amount: form.amount, desc: form.desc, returned: form.returned };
+    var res = form.editId ? C.updateGift(data, form.editId, o) : C.addGift(data, o);
+    if (res.error) { data = C.sanitize(JSON.parse(snap)); form.err = res.error; return render(); }
+    var who = donor(id).name, editing = form.editId; save(); form = fresh(); form.date = date;
+    toast((editing ? 'Changed: ' : 'Saved: ') + who + ' · ' + (res.gift.kind === 'cash' ? C.money(res.gift.cents) : 'goods'), snap); screen = editing ? 'gifts' : 'log'; render();
+  }
+
+  $app.addEventListener('input', function (e) {
+    var t = e.target;
+    if (t.id === 'q') { form.q = t.value; paintSugg(); }
+    else if (t.id === 'pq') paintPeople();
+    else if (t.getAttribute('data-set')) { settings[t.getAttribute('data-set')] = t.value; if (t.getAttribute('data-set') === 'org') document.querySelector('header.top h1').textContent = t.value || 'Donor gifts'; save(); }
+    else if (t.getAttribute('data-wk')) { settings[t.getAttribute('data-wk')] = t.value; save(); }
+    else if (['gd', 'ga', 'gx', 'gr', 'addr'].indexOf(t.id) >= 0) readForm();
+    else if (t.id === 'ldate') { var iso = Dt.parse(t.value); settings.letterDate = iso || ''; save(); }
+  });
+  $app.addEventListener('change', function (e) {
+    var t = e.target;
+    if (t.id === 'gy') { giftYear = +t.value; render(); } else if (t.id === 'ly') { letterYear = +t.value; render(); }
+    else if (t.id === 'only') { settings.onlyNeeded = t.checked; save(); render(); }
+    else if (t.id === 'ldate') render();
+    else if (t.id === 'file' && t.files[0]) {
+      ToolkitBackup.read(t.files[0], function (err, r) {
+        t.value = ''; var nd = err ? null : C.sanitize(r.data);
+        if (!nd || (!nd.donors.length && !nd.gifts.length)) return toast('That file does not look like a backup from this app.');
+        if (!confirm('Replace everything here with ' + nd.donors.length + ' donors and ' + nd.gifts.length + ' gifts from the backup?')) return;
+        var snap = snapshot(); data = nd; if (r.settings) for (var k in r.settings) settings[k] = r.settings[k]; settings.sample = false; save(); toast('Backup restored.', snap); render();
+      });
+    }
+  });
+  $app.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter' && e.target.id === 'q') { e.preventDefault(); var r = form.q.trim() && C.search(data, form.q, 1); if (r && r.length === 1 && C.findDonor(data, form.q)) { form.donorId = r[0].id; render(); } else if (form.q.trim()) { var gd = document.getElementById('gd'); if (gd) gd.focus(); } }
+  });
+  $app.addEventListener('click', function (e) {
+    var b = e.target.closest('[data-act]'); if (!b) return; var act = b.getAttribute('data-act'), id = b.getAttribute('data-id'), snap;
+    if (act === 'theme') { ToolkitTheme.toggle(settings); save(); render(); }
+    else if (act === 'tab') { if (b.getAttribute('data-v') !== 'log') form = form.editId ? fresh() : form; go(b.getAttribute('data-v')); }
+    else if (act === 'welcomeOff') { settings.welcome = false; save(); render(); }
+    else if (act === 'welcomeOn') { settings.welcome = true; save(); go('log'); }
+    else if (act === 'pick') { readForm(); form.donorId = id; render(); document.getElementById(form.kind === 'cash' ? 'ga' : 'gx').focus(); }
+    else if (act === 'unpick') { readForm(); form.donorId = null; render(); }
+    else if (act === 'kind') { readForm(); form.kind = b.getAttribute('data-v'); render(); }
+    else if (act === 'saveGift') saveGift();
+    else if (act === 'cancelEdit') { form = fresh(); go('gifts'); }
+    else if (act === 'editGift') { var g = data.gifts.filter(function (x) { return x.id === id; })[0]; form = { q: '', donorId: g.donorId, address: '', date: g.date, kind: g.kind, amount: g.kind === 'cash' ? (g.cents / 100).toFixed(2) : '', desc: g.desc, returned: g.returned, editId: g.id, err: '' }; go('log'); }
+    else if (act === 'delGift') { var gg = data.gifts.filter(function (x) { return x.id === id; })[0], dn = donor(gg.donorId); if (!confirm('Delete the gift from ' + dn.name + ' on ' + C.fmtDate(gg.date) + '?')) return; snap = snapshot(); C.removeGift(data, id); save(); toast('Gift deleted.', snap); render(); }
+    else if (act === 'printLetters') ToolkitPrint.print((settings.org || 'Donor') + ' year-end letters ' + (letterYear || lastYear()));
+    else if (act === 'csv') ToolkitCsv.download('gifts-' + (giftYear || lastYear()) + '.csv', C.csvRows(data, giftYear || lastYear()));
+    else if (act === 'csvAll') ToolkitCsv.download('all-gifts.csv', C.csvRows(data, null));
+    else if (act === 'backup') { ToolkitBackup.save({ app: 'donor-receipts', filename: 'donor-gifts-backup-' + Dt.today() + '.json', data: data, settings: { org: settings.org, letterhead: settings.letterhead, signer: settings.signer, signerTitle: settings.signerTitle, ein: settings.ein, letterDate: settings.letterDate, onlyNeeded: settings.onlyNeeded, theme: settings.theme } }); toast('Backup saved to your Downloads folder.'); }
+    else if (act === 'restore') ToolkitBackup.pick('file');
+    else if (act === 'wordsReset') { ['intro', 'cashNote', 'goodsNote', 'nothingReturned', 'taxLine', 'closing'].forEach(function (k) { delete settings[k]; }); save(); render(); toast('Standard wording is back.'); }
+    else if (act === 'editDonor') { var x = donor(id), nm = prompt('Name:', x.name); if (nm == null) return; var ad = prompt('Mailing address (use a comma between lines, leave empty for none):', (x.address || '').replace(/\n/g, ', ')); if (ad == null) return; snap = snapshot(); var r = C.renameDonor(data, id, nm, ad.split(/\s*,\s*/).join('\n')); if (r.error) return toast(r.error); save(); toast('Saved.', snap); render(); }
+    else if (act === 'delDonor') { var y = donor(id), n = data.gifts.filter(function (z) { return z.donorId === id; }).length; if (!confirm('Remove ' + y.name + (n ? ' and their ' + n + ' gift' + (n === 1 ? '' : 's') : '') + '?')) return; snap = snapshot(); C.removeDonor(data, id); save(); toast(y.name + ' removed.', snap); render(); }
+    else if (act === 'sampleReset') { if (!confirm('Replace everything with made-up practice donors?')) return; snap = snapshot(); seed(); toast('Practice data is back.', snap); form = fresh(); go('log'); }
+    else if (act === 'fresh') { if (!confirm('Clear all donors and gifts so you can start with real ones? (Your backup files are not touched. You can undo right after.)')) return; snap = snapshot(); data = C.emptyData(); settings.sample = false; settings.welcome = false; save(); toast('Cleared. Ready for real gifts.', snap); form = fresh(); go('log'); }
+  });
+  render();
+})();
+
+</script>
+</body></html>
