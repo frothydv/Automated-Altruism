@@ -1,0 +1,903 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="dark"><meta name="theme-color" content="#12161c"><title>Local help list</title>
+<style>html{background:#12161c}</style>
+<style>/* Print layout. Mark anything that should not print with class "noprint" (or "no-print"); anything only for paper with "print-only".
+   Screen colors are reset to black on white so printing works from dark mode too. */
+.print-only{display:none}
+@media print{
+  :root,:root.light{--bg:#fff;--card:#fff;--panel:#fff;--panel2:#fff;--field:#fff;--text:#000;--muted:#333;--line:#888}
+  html,body{background:#fff!important;color:#000!important;font-size:12pt}
+  .noprint,.no-print,nav.tabs,.toast,#toast,.modal,button{display:none!important}
+  .print-only{display:block!important}
+  .card,.res,tr{break-inside:avoid;box-shadow:none}
+  .print-break{break-before:page}
+  .print-page{break-after:page;page-break-after:always}.print-page:last-child{break-after:auto;page-break-after:auto}
+  body.printing-section .print-section:not(.print-this){display:none!important}
+  table{border-collapse:collapse}th,td{border:1px solid #000;padding:6px;text-align:left;vertical-align:top}
+}
+</style><style>:root{--bg:#12161c;--card:#1b222b;--line:#4a5663;--text:#f2f5f8;--muted:#b4bfcb;--accent:#5fd18a;--accentText:#08210f;--warn:#ffc857;--bad:#ff8a80;--field:#0e1217;--blue:#2f6fd0}
+:root.light{--bg:#f6f7f4;--card:#fff;--line:#7d8893;--text:#14181d;--muted:#46505b;--accent:#1f7a45;--accentText:#fff;--warn:#8a5a00;--bad:#b3261e;--field:#fff;--blue:#1c55b0}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--text);font:18px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+#app{max-width:820px;margin:0 auto;padding:10px 14px 96px}
+header.top{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:6px}
+header.top h1{font-size:1.15rem;margin:0;flex:1;min-width:150px}
+h2{font-size:1.3rem;margin:16px 0 8px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;margin:12px 0}
+.muted{color:var(--muted)}.small{font-size:.9rem}
+button,.btn{font:inherit;min-height:48px;padding:10px 16px;border-radius:12px;border:2px solid var(--line);background:var(--card);color:var(--text);cursor:pointer}
+button:focus-visible,input:focus-visible,select:focus-visible,a:focus-visible{outline:3px solid var(--warn);outline-offset:2px}
+button.primary{background:var(--accent);color:var(--accentText);border-color:var(--accent);font-weight:700}
+button.danger{border-color:var(--bad);color:var(--bad)}
+button.small{min-height:40px;padding:6px 12px;font-size:.95rem}
+button.link{border:0;background:none;text-decoration:underline;min-height:44px;padding:6px}
+nav.tabs{display:flex;gap:6px;position:fixed;bottom:0;left:0;right:0;background:var(--card);border-top:1px solid var(--line);padding:6px;justify-content:center;z-index:5}
+nav.tabs button{flex:1;max-width:200px;min-height:54px}
+nav.tabs button[aria-current=page]{background:var(--accent);color:var(--accentText);border-color:var(--accent);font-weight:700}
+label{display:block;font-weight:600;margin:12px 0 4px}
+input,select{font:inherit;width:100%;min-height:50px;padding:8px 12px;border-radius:10px;border:2px solid var(--line);background:var(--field);color:var(--text)}
+input.search{font-size:1.4rem;min-height:62px;border-color:var(--accent)}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
+.actions .primary{flex:1;min-height:58px;font-size:1.2rem}
+.evbar{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+.evbar b{font-size:1.1rem}
+.count{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.count .num{font-size:3rem;font-weight:800;line-height:1;color:var(--accent);font-variant-numeric:tabular-nums}
+.res{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap;border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin:8px 0;background:var(--card)}
+.res.here{border-color:var(--accent)}
+.res .who{flex:1;min-width:150px}.res .who b{font-size:1.2rem}
+.res .btns{display:flex;gap:8px;flex-wrap:wrap}
+.res .btns .primary{min-height:52px}
+.pill{display:inline-block;padding:2px 10px;border-radius:99px;font-weight:700;font-size:.85rem;border:2px solid var(--accent);color:var(--accent)}
+.alert{border-left:6px solid var(--warn);padding:10px 14px;background:var(--card);border-radius:10px;margin:12px 0}
+.alert.ok{border-left-color:var(--accent)}
+.sample{background:var(--warn);color:#201500;padding:6px 12px;border-radius:10px;font-weight:600;font-size:.9rem;margin:6px 0}
+:root.light .sample{background:#ffe9b0}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:84px;background:var(--text);color:var(--bg);padding:12px 18px;border-radius:12px;z-index:9;display:flex;gap:14px;align-items:center;max-width:92vw}
+.toast button{min-height:40px;background:transparent;color:var(--bg);border-color:var(--bg)}
+.err{color:var(--bad);font-weight:600;margin-top:10px}
+.chips{display:flex;gap:8px;flex-wrap:wrap}.chips button{min-height:44px}
+.chips button[aria-pressed=true]{background:var(--accent);color:var(--accentText);border-color:var(--accent)}
+.sr{position:absolute;left:-9999px}
+.namerow{display:flex;gap:8px;margin:8px 0}.namerow input{flex:1}
+ol.steps{padding-left:22px}ol.steps li{margin:6px 0}
+table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:8px;border-bottom:1px solid var(--line)}th{color:var(--muted);font-size:.9rem}
+@media(max-width:560px){.row2{grid-template-columns:1fr}.count .num{font-size:2.5rem}}
+.tmap{width:100%;height:auto;display:block;border:2px solid var(--line);border-radius:12px;background:#2a3340}
+.tmap-bg{fill:#2a3340}:root.light .tmap-bg{fill:#dfe6dc}
+.pin{cursor:pointer}.pin:focus-visible circle{stroke:#ffc857;stroke-width:5}
+.place{border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin:8px 0;background:var(--card)}
+.place.sel{border-color:var(--warn);border-width:3px}
+.place h3{margin:0 0 2px;font-size:1.2rem}
+.place .line{margin:2px 0}.place a{color:var(--text)}
+.place .btns{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+.pill.warn{border-color:var(--warn);color:var(--warn)}
+.num{display:inline-block;min-width:1.7em;text-align:center;border-radius:99px;color:#fff;font-weight:700;padding:0 6px;margin-right:6px}
+.days{display:flex;gap:6px;flex-wrap:wrap}.days button{min-width:62px}
+.days button[aria-pressed=true]{background:var(--accent);color:var(--accentText);border-color:var(--accent);font-weight:700}
+textarea{font:inherit;width:100%;min-height:70px;padding:8px 12px;border-radius:10px;border:2px solid var(--line);background:var(--field);color:var(--text)}
+details.more{margin:14px 0}details.more summary{cursor:pointer;min-height:44px;padding:8px 0;font-weight:600}
+.pick{border:3px solid var(--warn);border-radius:14px;padding:10px;margin:10px 0}
+.legend{columns:2 280px;margin:10px 0}.legend button{display:block;width:100%;text-align:left;margin:4px 0}
+.print-only{display:none}
+@media print{
+  @page{margin:.5in}
+  #printArea{font-family:Georgia,"Times New Roman",serif;color:#000}
+  #printArea h1{font-size:20pt;margin:0}
+  #printArea .pl-sub{margin:2px 0 8px;font-size:10pt;border-bottom:2px solid #000;padding-bottom:4px}
+  .pl-cols{column-count:2;column-gap:.35in;font-size:9.5pt;line-height:1.25}
+  .small-print .pl-cols{font-size:8.5pt}.tiny-print .pl-cols{font-size:7.5pt}
+  .pl-cols h2{font-size:11.5pt;margin:8px 0 3px;border-bottom:1px solid #000;break-after:avoid}
+  .pl-item{break-inside:avoid;margin:0 0 5px}.pl-item b{font-size:1.05em}.pl-item i{color:#333}
+  .pl-foot{margin-top:8px;font-size:9pt;border-top:1px solid #000;padding-top:4px}
+  .pl-page .pl-kind{font-size:12pt;line-height:1.35}.small-print .pl-page .pl-kind{font-size:10.5pt}.tiny-print .pl-page .pl-kind{font-size:9pt}
+  .pl-page .pl-kind h2{font-size:15pt;margin:14px 0 6px;border-bottom:2px solid #000}
+  .pl-page .pl-item{margin:0 0 10px}
+}
+@media(max-width:560px){.row2{grid-template-columns:1fr}}
+</style></head>
+<body><div id="app"></div><noscript>This page needs JavaScript turned on to work.</noscript>
+<script>
+/* Dark/light theme toggle. Dark is the default; light adds class "light" to <html>.
+   The app keeps the choice in its own settings object ({theme: 'dark'|'light'}) and saves it however it likes.
+   API: ToolkitTheme.apply(theme)  ToolkitTheme.toggle(settings) -> new theme (also applies it; caller saves settings)
+        ToolkitTheme.button(theme) -> html for the button, clicks are handled by the app on [data-act=theme] */
+(function (root) {
+  'use strict';
+  function apply(theme) {
+    var light = theme === 'light', d = root.document;
+    d.documentElement.classList.toggle('light', light);
+    var m = d.querySelector('meta[name=color-scheme]'); if (m) m.setAttribute('content', light ? 'light' : 'dark');
+    var tc = d.querySelector('meta[name=theme-color]'); if (tc) tc.setAttribute('content', light ? '#f6f7f4' : '#12161c');
+  }
+  function toggle(settings) { settings.theme = settings.theme === 'light' ? 'dark' : 'light'; apply(settings.theme); return settings.theme; }
+  function button(theme) {
+    return '<button class="small" type="button" data-act="theme" aria-label="Switch between dark and light colors">' + (theme === 'light' ? '🌙 Dark' : '☀️ Light') + '</button>';
+  }
+  var api = { apply: apply, toggle: toggle, button: button };
+  root.ToolkitTheme = api;
+  if (typeof module !== 'undefined' && module.exports) module.exports = api;
+})(typeof window !== 'undefined' ? window : globalThis);
+
+</script><script>
+/* Saves text as a file in the browser's Downloads folder (no server). ToolkitDownload.save(filename, text, mimeType). */
+(function (root) {
+  'use strict';
+  function save(name, text, type) {
+    var d = root.document, a = d.createElement('a');
+    a.href = URL.createObjectURL(new Blob([text], { type: type || 'text/plain' })); a.download = name; d.body.appendChild(a); a.click();
+    setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 500);
+  }
+  root.ToolkitDownload = { save: save };
+  if (typeof module !== 'undefined' && module.exports) module.exports = root.ToolkitDownload;
+})(typeof window !== 'undefined' ? window : globalThis);
+
+</script><script>
+/* CSV export for spreadsheets. Works in the browser and in Node (core logic can require it).
+   cell(v)  - one safe cell: quotes when needed, and defuses leading = + - @ so spreadsheets never run it as a formula
+   fromRows(rows) - array of arrays -> CSV text with Windows line breaks
+   parse(text) - the reverse: CSV text -> array of arrays. Handles quotes, line breaks inside cells, a byte-order mark, and , ; or tab separators.
+     Undoes the formula guard (a leading ' before = + - @) so a file this tool exported reads back unchanged.
+   download(filename, rows) - saves the file with a byte-order mark so Excel shows accents correctly (needs file-download) */
+(function (root) {
+  'use strict';
+  function cell(v) { v = String(v == null ? '' : v); if (/^[=+\-@]/.test(v)) v = "'" + v; return /[",\n\r]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; }
+  function fromRows(rows) { return rows.map(function (r) { return r.map(cell).join(','); }).join('\r\n'); }
+  function download(name, rows) { root.ToolkitDownload.save(name, '﻿' + fromRows(rows), 'text/csv'); }
+  function parse(text) {
+    text = String(text == null ? '' : text).replace(/^\uFEFF/, '');
+    var first = text.split(/\r?\n/, 1)[0], best = ',', bn = -1;
+    [',', ';', '\t'].forEach(function (d) { var n = first.split(d).length; if (n > 1 && n > bn) { best = d; bn = n; } });
+    var rows = [], row = [], c = '', q = false, i, ch;
+    for (i = 0; i < text.length; i++) {
+      ch = text[i];
+      if (q) { if (ch === '"') { if (text[i + 1] === '"') { c += '"'; i++; } else q = false; } else c += ch; }
+      else if (ch === '"' && c === '') q = true;
+      else if (ch === best) { row.push(c); c = ''; }
+      else if (ch === '\n' || ch === '\r') { if (ch === '\r' && text[i + 1] === '\n') i++; row.push(c); c = ''; rows.push(row); row = []; }
+      else c += ch;
+    }
+    if (c !== '' || row.length) { row.push(c); rows.push(row); }
+    return rows.map(function (r) { return r.map(function (v) { return /^'[=+\-@]/.test(v) ? v.slice(1) : v; }); })
+      .filter(function (r) { return r.length > 1 || (r.length === 1 && r[0].trim() !== ''); });
+  }
+  var api = { cell: cell, fromRows: fromRows, parse: parse, download: download };
+  root.ToolkitCsv = api;
+  if (typeof module !== 'undefined' && module.exports) module.exports = api;
+})(typeof window !== 'undefined' ? window : globalThis);
+
+</script><script>
+/* Forgiving dates for forms. ToolkitDates.parse('10/9/26') -> '2026-10-09' (or '' if it is not a date).
+   Accepts 2026-10-09, 10/9/2026, 10/9/26, 10-9 (this year), "Oct 9 2026", "9 Oct 2026", and month + year only
+   ("10/2027", "Oct 2027") which means the LAST day of that month (how best-by dates on cans are usually read).
+   Also: iso(Date), today(), addDays(iso, n), daysBetween(fromIso, toIso), describe(days). Works in browser and Node. */
+(function (root) {
+  'use strict';
+  var MONTHS = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
+  function pad(n) { return (n < 10 ? '0' : '') + n; }
+  function iso(d) { return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); }
+  function today() { return iso(new Date()); }
+  function addDays(s, n) { var d = new Date(s + 'T12:00:00'); d.setDate(d.getDate() + n); return iso(d); }
+  function daysBetween(a, b) { return Math.round((new Date(b + 'T12:00:00') - new Date(a + 'T12:00:00')) / 86400000); }
+  function build(y, mo, d) {
+    if (y < 100) y += 2000;
+    var dt = new Date(y, mo - 1, d);
+    return dt.getFullYear() === y && dt.getMonth() === mo - 1 && dt.getDate() === d ? iso(dt) : '';
+  }
+  function monthNum(w) { var i = MONTHS.indexOf(String(w).slice(0, 3).toLowerCase()); return i < 0 ? 0 : i + 1; }
+  function lastDay(y, mo) { if (y < 100) y += 2000; return new Date(y, mo, 0).getDate(); }
+
+  function parse(s) {
+    s = String(s == null ? '' : s).replace(/[,\s]+/g, ' ').trim(); if (!s) return '';
+    var m, y = new Date().getFullYear();
+    if ((m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/))) return build(+m[1], +m[2], +m[3]);
+    if ((m = s.match(/^(\d{1,2})[\/.-](\d{4})$/))) return +m[1] >= 1 && +m[1] <= 12 ? build(+m[2], +m[1], lastDay(+m[2], +m[1])) : '';
+    if ((m = s.match(/^(\d{1,2})[\/.-](\d{1,2})(?:[\/.-](\d{2}|\d{4}))?$/))) return build(m[3] ? +m[3] : y, +m[1], +m[2]);
+    if ((m = s.match(/^([A-Za-z]{3,9})\.? (\d{4})$/)) && monthNum(m[1])) return build(+m[2], monthNum(m[1]), lastDay(+m[2], monthNum(m[1])));
+    if ((m = s.match(/^([A-Za-z]{3,9})\.? (\d{1,2})(?: (\d{2}|\d{4}))?$/)) && monthNum(m[1])) return build(m[3] ? +m[3] : y, monthNum(m[1]), +m[2]);
+    if ((m = s.match(/^(\d{1,2}) ([A-Za-z]{3,9})\.?(?: (\d{2}|\d{4}))?$/)) && monthNum(m[2])) return build(m[3] ? +m[3] : y, monthNum(m[2]), +m[1]);
+    return '';
+  }
+
+  /* 3 -> "3 days left", 1 -> "1 day left", 0 -> "today", -2 -> "2 days past" */
+  function describe(days) {
+    if (days === 0) return 'today';
+    var n = Math.abs(days); return n + (n === 1 ? ' day ' : ' days ') + (days > 0 ? 'left' : 'past');
+  }
+
+  root.ToolkitDates = { parse: parse, iso: iso, today: today, addDays: addDays, daysBetween: daysBetween, describe: describe };
+  if (typeof module !== 'undefined' && module.exports) module.exports = root.ToolkitDates;
+})(typeof window !== 'undefined' ? window : globalThis);
+
+</script><script>
+/* One-click backup and restore as a small .json file (needs file-download).
+   save({app, filename, data, settings}) - downloads {app, savedAt, settings, data}
+   read(file, cb) - cb(null, {data, settings, app}) or cb(error). Also accepts older backups (bare data, or {data, org}).
+   The app then validates `data` with its own sanitize(), asks "Replace what you have?" and offers undo.
+   fileInput(id) - html for the hidden file chooser; pick(id) opens it. */
+(function (root) {
+  'use strict';
+  function save(o) {
+    root.ToolkitDownload.save(o.filename, JSON.stringify({ app: o.app || '', savedAt: new Date().toISOString(), settings: o.settings || {}, data: o.data }, null, 1), 'application/json');
+  }
+  function parse(text) {
+    var j = JSON.parse(text); if (!j || typeof j !== 'object') throw new Error('not a backup');
+    var settings = j.settings && typeof j.settings === 'object' ? j.settings : (j.org ? { org: j.org } : {});
+    return { data: j.data || j, settings: settings, app: j.app || '' };
+  }
+  function read(file, cb) {
+    var fr = new FileReader();
+    fr.onload = function () { var r; try { r = parse(fr.result); } catch (e) { return cb(e); } cb(null, r); };
+    fr.onerror = function () { cb(new Error('could not read file')); };
+    fr.readAsText(file);
+  }
+  function fileInput(id) { return '<input id="' + id + '" type="file" accept=".json,application/json" class="sr" tabindex="-1" aria-label="Choose backup file">'; }
+  function pick(id) { root.document.getElementById(id).click(); }
+  var api = { save: save, parse: parse, read: read, fileInput: fileInput, pick: pick };
+  root.ToolkitBackup = api;
+  if (typeof module !== 'undefined' && module.exports) module.exports = api;
+})(typeof window !== 'undefined' ? window : globalThis);
+
+</script><script>
+/* ToolkitPrint.print(title) opens the browser print window; the title becomes the suggested file name when saving as PDF. */
+(function (root) {
+  'use strict';
+  function print(title) {
+    var d = root.document, old = d.title; if (title) d.title = title;
+    try { root.print(); } finally { d.title = old; }
+  }
+  /* Print just one part of the page: mark each part class="print-section" and give the one to print data-section="name". */
+  function printSection(title, name) {
+    var d = root.document, els = d.querySelectorAll('.print-section'), i;
+    for (i = 0; i < els.length; i++) if (els[i].getAttribute('data-section') === name) els[i].classList.add('print-this');
+    d.body.classList.add('printing-section');
+    try { print(title); } finally {
+      d.body.classList.remove('printing-section');
+      for (i = 0; i < els.length; i++) els[i].classList.remove('print-this');
+    }
+  }
+  root.ToolkitPrint = { print: print, printSection: printSection };
+  if (typeof module !== 'undefined' && module.exports) module.exports = root.ToolkitPrint;
+})(typeof window !== 'undefined' ? window : globalThis);
+
+</script><script>
+/* Guided first-run welcome: a short "do these 2-3 things first" panel.
+   ToolkitWelcome.html({title, intro, steps:[...], doneLabel, doneAct, card:true}) -> html string.
+   steps/intro are trusted html written by the app author (use <b> for the thing to tap). The done button carries data-act=doneAct
+   (default "welcomeOff"); the app hides the welcome, remembers that in its settings, and offers "Show the welcome again" somewhere under More. */
+(function (root) {
+  'use strict';
+  function html(o) {
+    var inner = '<h2' + (o.card === false ? '' : ' style="margin-top:0"') + '>' + (o.title || 'Welcome!') + '</h2>' + (o.intro ? '<p>' + o.intro + '</p>' : '') +
+      '<ol class="steps">' + (o.steps || []).map(function (s) { return '<li>' + s + '</li>'; }).join('') + '</ol>' +
+      '<button class="primary" type="button" data-act="' + (o.doneAct || 'welcomeOff') + '">' + (o.doneLabel || 'Got it, let’s start') + '</button>';
+    return o.card === false ? inner : '<div class="card" role="region" aria-label="Welcome">' + inner + '</div>';
+  }
+  root.ToolkitWelcome = { html: html };
+  if (typeof module !== 'undefined' && module.exports) module.exports = root.ToolkitWelcome;
+})(typeof window !== 'undefined' ? window : globalThis);
+
+</script><script>
+/* Practice data helper: remembers which settings a tool filled with made-up values, and clears them on "start fresh".
+   Plain script (global ToolkitPracticeData) or require(). No storage of its own: it works on the tool's settings object.
+   Settings are cleared only when they still hold the practice value, so a name the charity typed is never touched. */
+(function (root, factory) {
+  if (typeof module === 'object' && module.exports) module.exports = factory(); else root.ToolkitPracticeData = factory();
+})(typeof self !== 'undefined' ? self : this, function () {
+  'use strict';
+  var MARK = 'practiceSet'; // settings.practiceSet = { key: practiceValue } for every setting seed() filled
+  var DEFAULT_FLAGS = { sample: { key: 'sample', practice: true, fresh: false }, welcome: { key: 'welcome', practice: true, fresh: false } };
+
+  function flags(opts) {
+    var f = (opts && opts.flags) || {}, o = {};
+    ['sample', 'welcome'].forEach(function (n) { o[n] = f[n] === null ? null : Object.assign({}, DEFAULT_FLAGS[n], f[n] || {}); });
+    return o;
+  }
+  function same(a, b) { return JSON.stringify(a) === JSON.stringify(b); }
+
+  /* Fill settings with practice values and remember them. values: {org: 'Example Pantry', ...}. Sets the practice banner and welcome flags. */
+  function seed(settings, values, opts) {
+    var f = flags(opts), rec = {};
+    Object.keys(values || {}).forEach(function (k) { settings[k] = values[k]; rec[k] = values[k]; });
+    settings[MARK] = Object.assign(settings[MARK] || {}, rec);
+    if (f.sample) settings[f.sample.key] = f.sample.practice;
+    if (f.welcome) settings[f.welcome.key] = f.welcome.practice;
+    return settings;
+  }
+
+  /* Which setting keys still hold a practice value? Checks what seed() recorded, plus opts.legacy ({key: [values]}) for data saved
+     before this component existed. */
+  function practiceKeys(settings, opts) {
+    var rec = settings[MARK] || {}, legacy = (opts && opts.legacy) || {}, out = [];
+    Object.keys(rec).concat(Object.keys(legacy)).forEach(function (k) {
+      if (out.indexOf(k) >= 0 || settings[k] === undefined) return;
+      var cands = [rec[k]].concat(legacy[k] || []).filter(function (v) { return v !== undefined; });
+      if (cands.some(function (v) { return same(v, settings[k]); })) out.push(k);
+    });
+    return out;
+  }
+
+  /* Clear every still-practice setting (to opts.blank, default ''), the banner and welcome flags, and the record of what was seeded.
+     Returns {cleared: [keys], kept: [keys the charity changed]}. */
+  function clearSettings(settings, opts) {
+    var f = flags(opts), blank = opts && 'blank' in opts ? opts.blank : '', rec = settings[MARK] || {}, legacy = (opts && opts.legacy) || {};
+    var cleared = practiceKeys(settings, opts), kept = Object.keys(rec).concat(Object.keys(legacy)).filter(function (k, i, a) {
+      return a.indexOf(k) === i && cleared.indexOf(k) < 0 && settings[k] !== undefined && settings[k] !== blank;
+    });
+    cleared.forEach(function (k) { settings[k] = blank; });
+    delete settings[MARK];
+    if (f.sample) settings[f.sample.key] = f.sample.fresh;
+    if (f.welcome) settings[f.welcome.key] = f.welcome.fresh;
+    return { cleared: cleared, kept: kept };
+  }
+
+  /* One undoable step. state = {data, settings}; opts.empty = function returning empty data (or the empty data itself);
+     opts.onSettings(settings) may reset other things such as a current-event id. Mutates settings in place; returns
+     {data, cleared, kept, undo} where undo is a string for restore(). */
+  function startFresh(state, opts) {
+    var undo = snapshot(state), r = clearSettings(state.settings, opts), empty = opts && opts.empty;
+    if (opts && opts.onSettings) opts.onSettings(state.settings);
+    return { data: typeof empty === 'function' ? empty() : empty, cleared: r.cleared, kept: r.kept, undo: undo };
+  }
+
+  /* Snapshot of data AND settings, so one Undo brings back both. */
+  function snapshot(state) { return JSON.stringify({ practiceData: 1, data: state.data, settings: state.settings }); }
+  /* Put settings back in place (same object) and return the data to re-sanitize. Also accepts an old data-only snapshot. */
+  function restore(str, settings) {
+    var o = JSON.parse(str);
+    if (!o || o.practiceData !== 1) return { data: o };
+    Object.keys(settings).forEach(function (k) { delete settings[k]; });
+    Object.assign(settings, o.settings);
+    return { data: o.data };
+  }
+
+  /* True if any text field of the tool's settings still equals a known practice value (used by tests). */
+  function leftovers(settings, practiceValues) {
+    var vals = Array.isArray(practiceValues) ? practiceValues : Object.keys(practiceValues).map(function (k) { return practiceValues[k]; });
+    return Object.keys(settings).filter(function (k) { return k !== MARK && vals.some(function (v) { return same(v, settings[k]); }); });
+  }
+
+  return { MARK: MARK, seed: seed, practiceKeys: practiceKeys, clearSettings: clearSettings, startFresh: startFresh, snapshot: snapshot, restore: restore, leftovers: leftovers };
+});
+
+</script><script>
+/* Type-ahead search helpers. Works in the browser and in Node.
+   ToolkitSearch.norm(s)            lower-case, accents removed, punctuation -> spaces
+   ToolkitSearch.tokens(q, stop)    words typed by the person, minus filler words (default: on in the a for at and of open me i need)
+   ToolkitSearch.wordPrefix(t, text) true when t starts one of the words in text ("pan" finds "Pantry")
+   ToolkitSearch.matchAll(tokens, textOrFn) true when EVERY token starts a word of the text (or fn(token) is true)
+   Meant for small lists (hundreds of rows): no index, just a fast scan on every keystroke. */
+(function (root) {
+  'use strict';
+  var STOP = 'on in the a an for at and of open me i need to near some';
+  function norm(s) {
+    s = String(s == null ? '' : s).toLowerCase();
+    if (s.normalize) s = s.normalize('NFD').replace(/[̀-ͯ]/g, '');
+    return s.replace(/[^a-z0-9]+/g, ' ').trim();
+  }
+  function tokens(q, stop) {
+    var st = {}; (stop == null ? STOP : stop).split(' ').forEach(function (w) { if (w) st[w] = 1; });
+    return norm(q).split(' ').filter(function (w) { return w && !st[w]; });
+  }
+  function wordPrefix(t, text) { return (' ' + norm(text)).indexOf(' ' + t) >= 0; }
+  function matchAll(toks, test) {
+    for (var i = 0; i < toks.length; i++) {
+      var ok = typeof test === 'function' ? test(toks[i]) : wordPrefix(toks[i], test);
+      if (!ok) return false;
+    }
+    return true;
+  }
+  var api = { norm: norm, tokens: tokens, wordPrefix: wordPrefix, matchAll: matchAll };
+  root.ToolkitSearch = api;
+  if (typeof module !== 'undefined' && module.exports) module.exports = api;
+})(typeof window !== 'undefined' ? window : globalThis);
+
+</script><script>
+/* Simple map that works with no internet and no keys: numbered pins drawn on a plain background with a scale bar.
+   When the device is online it also lays OpenStreetMap tiles underneath (optional, opts.tiles). Tiles that cannot load just stay blank.
+   Uses standard web-map maths (zoom + pixels), so pins line up with the tiles.
+   ToolkitMap.view(points, {w, h, pad, maxZoom, minZoom, center:[lat,lon]}) -> view  (points: [{lat, lon, ...}])
+   ToolkitMap.svg(view, pins, {tiles, label}) -> html string for an <svg>. pins: [{id, n, lat, lon, color, label, selected}]
+        each pin is <g class="pin" data-id=.. tabindex=0 role=button>; clicking the empty map is left to the app
+   ToolkitMap.fromEvent(svgEl, evt, view) -> {lat, lon} where the person tapped (for "tap to place the pin")
+   ToolkitMap.project(view, lat, lon) -> {x, y};  ToolkitMap.invert(view, x, y) -> {lat, lon}
+   ToolkitMap.valid(lat, lon) -> true for usable numbers. Trusted html only: the app must escape pin labels itself (they are escaped here). */
+(function (root) {
+  'use strict';
+  var T = 256;
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+  function valid(lat, lon) { return typeof lat === 'number' && typeof lon === 'number' && isFinite(lat) && isFinite(lon) && Math.abs(lat) < 85 && Math.abs(lon) <= 180; }
+  function px(lon, z) { return (lon + 180) / 360 * T * Math.pow(2, z); }
+  function py(lat, z) { var s = Math.sin(lat * Math.PI / 180); return (0.5 - Math.log((1 + s) / (1 - s)) / (4 * Math.PI)) * T * Math.pow(2, z); }
+  function view(points, o) {
+    o = o || {}; var w = o.w || 900, h = o.h || 520, pad = o.pad == null ? 60 : o.pad, maxZ = o.maxZoom || 15, minZ = o.minZoom || 2;
+    var pts = (points || []).filter(function (p) { return valid(p.lat, p.lon); }), z = 13, cx, cy, i;
+    if (!pts.length) { var c = o.center || [39.0, -98.0]; z = o.center ? 12 : 4; return { z: z, cx: px(c[1], z), cy: py(c[0], z), w: w, h: h, empty: true }; }
+    for (z = maxZ; z > minZ; z--) {
+      var x0 = 1e12, x1 = -1e12, y0 = 1e12, y1 = -1e12;
+      for (i = 0; i < pts.length; i++) { var x = px(pts[i].lon, z), y = py(pts[i].lat, z); x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y); }
+      if (x1 - x0 + 2 * pad <= w && y1 - y0 + 2 * pad <= h) { cx = (x0 + x1) / 2; cy = (y0 + y1) / 2; break; }
+    }
+    if (cx == null) { cx = (x0 + x1) / 2; cy = (y0 + y1) / 2; }
+    return { z: z, cx: cx, cy: cy, w: w, h: h };
+  }
+  function project(v, lat, lon) { return { x: px(lon, v.z) - (v.cx - v.w / 2), y: py(lat, v.z) - (v.cy - v.h / 2) }; }
+  function invert(v, x, y) {
+    var X = x + v.cx - v.w / 2, Y = y + v.cy - v.h / 2, n = Math.pow(2, v.z) * T;
+    var lon = X / n * 360 - 180, m = Math.PI - 2 * Math.PI * Y / n;
+    return { lat: 180 / Math.PI * Math.atan(0.5 * (Math.exp(m) - Math.exp(-m))), lon: lon };
+  }
+  function scale(v) {
+    var lat = invert(v, v.w / 2, v.h / 2).lat, mPerPx = 40075016.686 * Math.cos(lat * Math.PI / 180) / (T * Math.pow(2, v.z)), best = null;
+    [0.1, 0.25, 0.5, 1, 2, 5, 10, 25, 50, 100].forEach(function (mi) { var wpx = mi * 1609.34 / mPerPx; if (wpx <= 170) best = { mi: mi, px: wpx }; });
+    return best;
+  }
+  function svg(v, pins, o) {
+    o = o || {}; var s = '<svg class="tmap" viewBox="0 0 ' + v.w + ' ' + v.h + '" role="group" aria-label="' + esc(o.label || 'Map') + '" xmlns="http://www.w3.org/2000/svg">';
+    s += '<rect class="tmap-bg" width="' + v.w + '" height="' + v.h + '"/>';
+    if (o.tiles && !v.empty) {
+      var ox = v.cx - v.w / 2, oy = v.cy - v.h / 2, n = Math.pow(2, v.z), tx, ty;
+      for (tx = Math.floor(ox / T); tx <= Math.floor((ox + v.w) / T); tx++) for (ty = Math.floor(oy / T); ty <= Math.floor((oy + v.h) / T); ty++) {
+        if (ty < 0 || ty >= n) continue;
+        s += '<image href="https://tile.openstreetmap.org/' + v.z + '/' + (((tx % n) + n) % n) + '/' + ty + '.png" x="' + (tx * T - ox) + '" y="' + (ty * T - oy) + '" width="' + T + '" height="' + T + '"/>';
+      }
+    }
+    var sc = v.empty ? null : scale(v);
+    if (sc) s += '<g class="tmap-scale" transform="translate(14,' + (v.h - 30) + ')"><rect x="-6" y="-6" width="' + (sc.px + 12 + 70) + '" height="30" rx="6" fill="rgba(255,255,255,.85)"/><path d="M0 14V4H' + sc.px + 'V14" fill="none" stroke="#111" stroke-width="2"/><text x="' + (sc.px + 8) + '" y="14" font-size="13" fill="#111">' + sc.mi + ' mi</text></g>';
+    if (o.tiles && !v.empty) s += '<text x="' + (v.w - 8) + '" y="' + (v.h - 8) + '" text-anchor="end" font-size="11" fill="#111" stroke="#fff" stroke-width="3" paint-order="stroke">© OpenStreetMap contributors</text>';
+    (pins || []).forEach(function (p) {
+      if (!valid(p.lat, p.lon)) return;
+      var q = project(v, p.lat, p.lon), r = p.selected ? 20 : 16;
+      s += '<g class="pin" data-id="' + esc(p.id) + '" tabindex="0" role="button" aria-label="' + esc(p.label || p.n) + '" transform="translate(' + q.x.toFixed(1) + ',' + q.y.toFixed(1) + ')">' +
+        '<circle r="' + r + '" fill="' + esc(p.color || '#1c55b0') + '" stroke="' + (p.selected ? '#ffc857' : '#fff') + '" stroke-width="' + (p.selected ? 4 : 3) + '"/>' +
+        '<text y="5" text-anchor="middle" font-size="' + (String(p.n).length > 2 ? 11 : 15) + '" font-weight="700" fill="#fff">' + esc(p.n) + '</text></g>';
+    });
+    return s + '</svg>';
+  }
+  function fromEvent(el, e, v) {
+    var r = el.getBoundingClientRect(); if (!r.width) return null;
+    return invert(v, (e.clientX - r.left) * v.w / r.width, (e.clientY - r.top) * v.h / r.height);
+  }
+  var api = { view: view, svg: svg, project: project, invert: invert, fromEvent: fromEvent, valid: valid, scale: scale };
+  root.ToolkitMap = api;
+  if (typeof module !== 'undefined' && module.exports) module.exports = api;
+})(typeof window !== 'undefined' ? window : globalThis);
+
+</script><script>
+/* Resource directory core: a list of local help places (food, meals, rides, shelter...) with structured open days.
+   No organization details here. Works in the browser and in Node. Needs ToolkitSearch (typeahead-search) loaded first.
+   Place: {id, category, name, address, phone, days:[0-6 Sun..Sat], times, hoursNote, notes, checked:'YYYY-MM-DD', lat, lon}
+   Data:  {places:[...], categories:[{id,label,color,words}]}   (categories optional: defaults are filled in) */
+(function (root) {
+  'use strict';
+  var S = root.ToolkitSearch; // load components/typeahead-search/search.js first
+  var DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  var SHORT = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  var CATEGORIES = [
+    { id: 'pantry', label: 'Food pantries', color: '#1f7a45', words: 'food pantry groceries grocery hungry box' },
+    { id: 'meals', label: 'Free meals', color: '#b45309', words: 'food meal meals lunch dinner breakfast hot soup kitchen eat supper' },
+    { id: 'rides', label: 'Rides to medical appointments', color: '#1c55b0', words: 'ride rides transport transportation medical doctor appointment clinic driver van' },
+    { id: 'shelter', label: 'Shelters', color: '#7e3fb0', words: 'shelter bed beds housing homeless overnight warming sleep' },
+    { id: 'utilities', label: 'Utility help', color: '#b3261e', words: 'utility utilities electric electricity gas heat heating water bill bills power' },
+    { id: 'other', label: 'Other help', color: '#46505b', words: 'other clothing legal' }
+  ];
+  var DAY_WORDS = { weekend: [0, 6], weekends: [0, 6], weekday: [1, 2, 3, 4, 5], weekdays: [1, 2, 3, 4, 5] };
+
+  function str(v, max) { return String(v == null ? '' : v).replace(/\s+/g, ' ').trim().slice(0, max || 200); }
+  function uid() { return 'p' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
+  function isoOk(s) { return /^\d{4}-\d{2}-\d{2}$/.test(s || '') ? s : ''; }
+  function num(v, lim) { if (v === '' || v == null) return null; v = +v; return isFinite(v) && Math.abs(v) <= lim ? v : null; }
+
+  /* 3015550142 / 301.555.0142 / 1-301-555-0142 -> (301) 555-0142; anything else (extensions, 211) is kept as typed */
+  function tidyPhone(p) {
+    p = str(p, 40); var d = p.replace(/\D/g, '');
+    if (d.length === 11 && d[0] === '1') d = d.slice(1);
+    if (d.length === 10 && /^[\d\s().\-+]+$/.test(p)) return '(' + d.slice(0, 3) + ') ' + d.slice(3, 6) + '-' + d.slice(6);
+    return p;
+  }
+  function cats(data) { return data && data.categories && data.categories.length ? data.categories : CATEGORIES; }
+  function cleanPlace(p, cl) {
+    p = p || {}; var ids = cl.map(function (c) { return c.id; }), seen = {}, days = [];
+    (Array.isArray(p.days) ? p.days : []).forEach(function (d) { d = +d; if (d >= 0 && d <= 6 && d === Math.floor(d) && !seen[d]) { seen[d] = 1; days.push(d); } });
+    days.sort(function (a, b) { return a - b; });
+    var lat = num(p.lat, 90), lon = num(p.lon, 180); if (lat == null || lon == null) { lat = null; lon = null; }
+    return { id: str(p.id, 40) || uid(), category: ids.indexOf(p.category) >= 0 ? p.category : ids[ids.length - 1], name: str(p.name, 120), address: str(p.address, 200), phone: tidyPhone(p.phone),
+      days: days, times: str(p.times, 60), hoursNote: str(p.hoursNote, 160), notes: str(p.notes, 300), checked: isoOk(p.checked), lat: lat, lon: lon };
+  }
+  function sanitize(d) {
+    d = d && typeof d === 'object' ? d : {};
+    var cl = Array.isArray(d.categories) && d.categories.length ? d.categories.map(function (c) { return { id: str(c.id, 30), label: str(c.label, 60), color: /^#[0-9a-f]{6}$/i.test(c.color) ? c.color : '#46505b', words: str(c.words, 300) }; }).filter(function (c) { return c.id && c.label; }) : CATEGORIES;
+    if (!cl.length) cl = CATEGORIES;
+    return { categories: cl, places: (Array.isArray(d.places) ? d.places : []).map(function (p) { return cleanPlace(p, cl); }).filter(function (p) { return p.name; }) };
+  }
+  function blank(category, today) { return { id: uid(), category: category || 'pantry', name: '', address: '', phone: '', days: [], times: '', hoursNote: '', notes: '', checked: today || '', lat: null, lon: null }; }
+
+  /* [1,2,3,5] -> "Mon–Wed, Fri"; all seven -> "Every day" */
+  function dayList(days) {
+    if (!days.length) return ''; if (days.length === 7) return 'Every day';
+    var out = [], i = 0;
+    while (i < days.length) {
+      var j = i; while (j + 1 < days.length && days[j + 1] === days[j] + 1) j++;
+      out.push(j - i >= 2 ? SHORT[days[i]] + '–' + SHORT[days[j]] : days.slice(i, j + 1).map(function (d) { return SHORT[d]; }).join(', ')); i = j + 1;
+    }
+    return out.join(', ');
+  }
+  function hoursText(p) {
+    var a = [dayList(p.days), p.times].filter(Boolean).join(' '), parts = [a, p.hoursNote].filter(Boolean);
+    return parts.length ? parts.join(' · ') : 'Call for hours';
+  }
+  /* Days since "checked" (null if never). stale = never checked, or older than staleDays. */
+  function daysSince(p, today) { return p.checked ? Math.round((new Date(today + 'T12:00:00') - new Date(p.checked + 'T12:00:00')) / 86400000) : null; }
+  function isStale(p, today, staleDays) { var n = daysSince(p, today); return n == null || n > (staleDays || 90); }
+
+  function dayTokens(t, today) {
+    var out = [], i;
+    if (DAY_WORDS[t]) return DAY_WORDS[t];
+    var now = today ? new Date(today + 'T12:00:00').getDay() : -1;
+    if (t === 'today' || t === 'tonight') return now < 0 ? [] : [now];
+    if (t === 'tomorrow') return now < 0 ? [] : [(now + 1) % 7];
+    if (t.length < 2) return out;
+    for (i = 0; i < 7; i++) if (DAYS[i].toLowerCase().indexOf(t) === 0) out.push(i);
+    if (!out.length && t.length >= 3) for (i = 0; i < 7; i++) if (t.indexOf(DAYS[i].toLowerCase().slice(0, 3)) === 0 && DAYS[i].toLowerCase().indexOf(t.slice(0, 4)) === 0) out.push(i); // "thurs", "tues"
+    return out;
+  }
+  /* Does one typed word fit this place? Name/address/notes words, its kind of help (and that kind's keywords), or an open day. */
+  function tokenFits(t, p, cat, today) {
+    if (S.wordPrefix(t, p.name + ' ' + p.address + ' ' + p.notes + ' ' + p.hoursNote)) return true;
+    if (cat && (S.wordPrefix(t, cat.label) || S.wordPrefix(t, cat.words))) return true;
+    var dt = dayTokens(t, today); if (dt.length) return dt.some(function (d) { return p.days.indexOf(d) >= 0; });
+    return false;
+  }
+  function search(data, query, today) {
+    var toks = S.tokens(query), cl = cats(data), byId = {}; cl.forEach(function (c) { byId[c.id] = c; });
+    return data.places.filter(function (p) { return S.matchAll(toks, function (t) { return tokenFits(t, p, byId[p.category], today); }); });
+  }
+  function sortPlaces(list) { return list.slice().sort(function (a, b) { return a.name.toLowerCase() < b.name.toLowerCase() ? -1 : 1; }); }
+  /* -> [{cat, places:[...]}] in category order, empty groups left out */
+  function group(data, places) {
+    return cats(data).map(function (c) { return { cat: c, places: sortPlaces(places.filter(function (p) { return p.category === c.id; })) }; }).filter(function (g) { return g.places.length; });
+  }
+  function csvRows(data) {
+    var byId = {}; cats(data).forEach(function (c) { byId[c.id] = c.label; });
+    var rows = [['Kind of help', 'Name', 'Address', 'Phone', 'Open days', 'Times', 'Hours note', 'Notes', 'Last checked']];
+    group(data, data.places).forEach(function (g) { g.places.forEach(function (p) { rows.push([g.cat.label, p.name, p.address, p.phone, dayList(p.days), p.times, p.hoursNote, p.notes, p.checked]); }); });
+    return rows;
+  }
+  /* First-run start list from an organization's own config (window.DirectorySeed): {places, categories?, settings?}.
+     Returns {data, settings} with the seed's settings copied; the practice-data banner is NOT switched on. */
+  function fromSeed(seed) {
+    seed = seed && typeof seed === 'object' ? seed : {};
+    var st = seed.settings && typeof seed.settings === 'object' ? seed.settings : {}, out = {};
+    Object.keys(st).forEach(function (k) { out[k] = st[k]; });
+    return { data: sanitize({ categories: seed.categories, places: seed.places }), settings: out };
+  }
+  var api = { DAYS: DAYS, SHORT: SHORT, CATEGORIES: CATEGORIES, sanitize: sanitize, fromSeed: fromSeed, blank: blank, tidyPhone: tidyPhone, dayList: dayList, hoursText: hoursText, daysSince: daysSince, isStale: isStale,
+    search: search, group: group, sortPlaces: sortPlaces, csvRows: csvRows, categories: cats };
+  root.Directory = api;
+  if (typeof module !== 'undefined' && module.exports) module.exports = api;
+})(typeof window !== 'undefined' ? window : globalThis);
+
+</script><script>
+/* Made-up practice data (fake places, 555 phone numbers, rough coordinates). Dates are relative to today so the demo never looks old. */
+(function (root) {
+  'use strict';
+  function ago(n) { var d = new Date(); d.setDate(d.getDate() - n); return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2); }
+  function build() {
+    var P = function (category, name, address, phone, days, times, hoursNote, notes, age, lat, lon) { return { category: category, name: name, address: address, phone: phone, days: days, times: times, hoursNote: hoursNote, notes: notes, checked: ago(age), lat: lat, lon: lon }; };
+    return { places: [
+      P('pantry', 'Maple Street Food Pantry', '120 Maple St, Frederick, MD', '3015550101', [2, 4], '10am–1pm', '', 'Bring photo ID. Once a week per household.', 12, 39.4145, -77.4105),
+      P('pantry', 'Riverside Community Cupboard', '48 River Rd, Frederick, MD', '3015550102', [1, 3, 5], '9am–noon', 'Closed holidays', 'Fresh produce on Fridays.', 30, 39.4262, -77.3987),
+      P('pantry', 'Eastgate Neighbors Pantry', '900 Eastgate Ave, Frederick, MD', '3015550103', [6], '9am–11am', 'First and third Saturday only', 'Call first in winter.', 140, 39.4051, -77.3849),
+      P('meals', 'Hope Soup Kitchen', '15 Court Alley, Frederick, MD', '3015550110', [0, 1, 2, 3, 4, 5, 6], '5pm–6:30pm', 'Dinner, no sign-up', '', 9, 39.4139, -77.4118),
+      P('meals', 'Tuesday Table Community Lunch', '77 Church Hill Rd, Frederick, MD', '3015550111', [2], '12pm–1:30pm', '', 'Open to everyone. Kids welcome.', 20, 39.4208, -77.4231),
+      P('meals', 'Sunrise Breakfast Club', '305 Market St, Frederick, MD', '3015550112', [1, 2, 3, 4, 5], '7am–8:30am', '', '', 70, 39.4177, -77.4086),
+      P('rides', 'Care Wheels Medical Rides', '', '3015550120', [1, 2, 3, 4, 5], '8am–4pm', 'Book 3 days ahead', 'Free rides to doctor and clinic visits in the county. Call to book.', 15, 39.4120, -77.4000),
+      P('rides', 'Senior Van Service', '22 Elm Court, Frederick, MD', '3015550121', [2, 4], '9am–2pm', 'Ages 60+', '', 200, 39.4332, -77.4147),
+      P('shelter', 'Harbor House Emergency Shelter', '510 Prospect Blvd, Frederick, MD', '3015550130', [0, 1, 2, 3, 4, 5, 6], 'Open 24 hours', 'Intake at 6pm', 'Families and single adults. Call ahead.', 5, 39.4098, -77.4172),
+      P('shelter', 'Winter Warming Center', '18 Chapel St, Frederick, MD', '3015550131', [0, 1, 2, 3, 4, 5, 6], '7pm–7am', 'November to March', '', 45, 39.4189, -77.4034),
+      P('utilities', 'County Energy Assistance Office', '350 County Plaza, Frederick, MD', '3015550140', [1, 2, 3, 4, 5], '8:30am–4:30pm', 'Appointments preferred', 'Help with electric and heating bills.', 25, 39.4283, -77.4262),
+      P('utilities', 'Neighbors Helping Neighbors Bill Fund', '61 Walnut St, Frederick, MD', '3015550141', [3], '1pm–4pm', 'Walk-ins only', 'Water and gas bills, one time per year.', 100, 39.4032, -77.4201)
+    ] };
+  }
+  root.DirectorySample = { build: build, orgName: 'Welcome Desk', deskNote: 'Hours change. Please call before you go. Ask at the desk if you need help finding something else.', center: [39.4143, -77.4105] };
+})(typeof window !== 'undefined' ? window : globalThis);
+
+</script><script>
+/* Browser storage adapter. Interface: load() -> data|null, save(data) -> bool, loadSettings() -> {}, saveSettings(obj).
+   Falls back to memory if the browser blocks storage (save() then returns false). */
+(function (root) {
+  'use strict';
+  var KEY = 'resourceDirectory.data.v1', SKEY = 'resourceDirectory.settings.v1', mem = {};
+  function get(k) { try { return localStorage.getItem(k); } catch (e) { return mem[k] || null; } }
+  function set(k, v) { try { localStorage.setItem(k, v); return true; } catch (e) { mem[k] = v; return false; } }
+  root.DirectoryStorage = {
+    name: 'browser',
+    load: function () { var r = get(KEY); if (!r) return null; try { return root.Directory.sanitize(JSON.parse(r)); } catch (e) { return null; } },
+    save: function (d) { return set(KEY, JSON.stringify(d)); },
+    loadSettings: function () { try { return JSON.parse(get(SKEY)) || {}; } catch (e) { return {}; } },
+    saveSettings: function (s) { return set(SKEY, JSON.stringify(s)); }
+  };
+})(window);
+
+</script><script>
+/* Local-help directory UI. Plain JS; talks to Directory (core), DirectoryStorage (adapter) and the shared Toolkit* components. */
+(function () {
+  'use strict';
+  var D = window.Directory, S = window.DirectoryStorage, SAMPLE = window.DirectorySample, M = window.ToolkitMap, PD = window.ToolkitPracticeData;
+  var settings = S.loadSettings(), data = S.load(), screen = 'list', query = '', selId = null, form = null, toastTimer = null, storageOk = true;
+  var $app = document.getElementById('app');
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+  function today() { return ToolkitDates.today(); }
+  function fmt(iso) { if (!iso) return ''; var d = new Date(iso + 'T12:00:00'); return ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][d.getMonth()] + ' ' + d.getDate() + ', ' + d.getFullYear(); }
+
+  function startSample() {
+    var b = SAMPLE.build(); data = D.sanitize(b); PD.seed(settings, { org: SAMPLE.orgName, deskNote: SAMPLE.deskNote, center: SAMPLE.center }, PRACTICE);
+  }
+  /* "Start fresh" clears the practice name, note and map centre only while they are still the practice values (components/practice-data). */
+  var PRACTICE = { legacy: { org: [SAMPLE.orgName], deskNote: [SAMPLE.deskNote], center: [SAMPLE.center] } };
+  /* First run: the organization's own starting list (window.DirectorySeed) if it has one, otherwise made-up practice places. */
+  function startSeed(seed) { var r = D.fromSeed(seed); data = r.data; Object.keys(r.settings).forEach(function (k) { settings[k] = r.settings[k]; }); settings.sample = false; }
+  if (!data) { if (window.DirectorySeed) startSeed(window.DirectorySeed); else startSample(); settings.welcome = true; S.saveSettings(settings); S.save(data); }
+  else if (!data.places.length && !settings.sample && PD.practiceKeys(settings, PRACTICE).length) { PD.clearSettings(settings, PRACTICE); S.saveSettings(settings); } // practice text left by an older "Start fresh"
+  if (settings.tiles == null) settings.tiles = true;
+  ToolkitTheme.apply(settings.theme);
+  function save() { storageOk = S.save(data); S.saveSettings(settings); }
+  function snapshot() { return PD.snapshot({ data: data, settings: settings }); }
+  function toast(msg, undoSnap) {
+    var old = document.getElementById('toast'); if (old) old.remove(); clearTimeout(toastTimer);
+    var t = document.createElement('div'); t.id = 'toast'; t.className = 'toast'; t.setAttribute('role', 'status');
+    t.innerHTML = '<span>' + esc(msg) + '</span>' + (undoSnap ? '<button type="button">Undo</button>' : '');
+    document.body.appendChild(t);
+    if (undoSnap) t.querySelector('button').onclick = function () { data = D.sanitize(PD.restore(undoSnap, settings).data); save(); t.remove(); render(); };
+    toastTimer = setTimeout(function () { t.remove(); }, 8000);
+  }
+  function go(s) { screen = s; if (s === 'list' || s === 'map') form = null; render(); window.scrollTo(0, 0); }
+  function place(id) { return data.places.filter(function (p) { return p.id === id; })[0]; }
+  function cat(id) { return D.categories(data).filter(function (c) { return c.id === id; })[0] || { label: '', color: '#46505b' }; }
+  function matches() { return D.search(data, query, today()); }
+
+  function header() {
+    return '<header class="top"><h1>' + esc(settings.org || 'Local help list') + '</h1><span class="muted small" id="net" aria-live="polite"></span>' + ToolkitTheme.button(settings.theme) + '</header>' +
+      (settings.sample ? '<div class="sample">Practice mode: every place and phone number here is made up. Go to More → “Start fresh” when you are ready for the real list.</div>' : '') +
+      (storageOk ? '' : '<div class="alert"><b>This browser is not saving.</b> Changes will be lost when you close this page. Open the page in a normal (not private) window.</div>');
+  }
+  function tabs() {
+    var t = [['list', '📋 List'], ['map', '🗺 Map'], ['more', '⋯ More']];
+    return '<nav class="tabs" aria-label="Main">' + t.map(function (x) { return '<button type="button" data-act="tab" data-v="' + x[0] + '"' + (screen === x[0] || (screen === 'pick' && x[0] === 'map') ? ' aria-current="page"' : '') + '>' + x[1] + '</button>'; }).join('') + '</nav>';
+  }
+  function welcome() {
+    if (!settings.welcome) return '';
+    return ToolkitWelcome.html({ title: 'Welcome! Four things to try', steps: [
+      'Type <b>food tuesday</b> in the search box. The list narrows to places serving food on a Tuesday.',
+      'Tap <b>Map</b> at the bottom to see the same places as pins. Tap a pin for details.',
+      'Tap <b>Edit</b> on any place to change its hours, or <b>✔ Checked today</b> after you confirm them by phone.',
+      'Tap <b>Print the one-page list</b> to hand a copy to a visitor.'] });
+  }
+
+  function agoText(p) {
+    var n = D.daysSince(p, today()); if (n == null) return 'Never checked';
+    if (n <= 0) return 'Checked today'; if (n === 1) return 'Checked yesterday'; if (n < 60) return 'Checked ' + n + ' days ago'; return 'Checked ' + Math.round(n / 30) + ' months ago';
+  }
+  function placeCard(p, n) {
+    var c = cat(p.category), stale = D.isStale(p, today(), settings.staleDays);
+    return '<div class="place' + (p.id === selId ? ' sel' : '') + '" data-id="' + esc(p.id) + '"><h3>' + (n ? '<span class="num" style="background:' + esc(c.color) + '">' + n + '</span>' : '') + esc(p.name) + '</h3>' +
+      '<div class="muted small">' + esc(c.label) + '</div>' +
+      (p.address ? '<div class="line">📍 ' + esc(p.address) + '</div>' : '') +
+      (p.phone ? '<div class="line">📞 <a href="tel:' + esc(p.phone.replace(/[^\d+]/g, '')) + '">' + esc(p.phone) + '</a></div>' : '') +
+      '<div class="line">🕒 <b>' + esc(D.hoursText(p)) + '</b></div>' + (p.notes ? '<div class="line muted">' + esc(p.notes) + '</div>' : '') +
+      '<div class="line small">' + (stale ? '<span class="pill warn">Call to confirm hours</span> ' : '') + esc(agoText(p)) + (p.checked ? ' (' + esc(fmt(p.checked)) + ')' : '') + '</div>' +
+      '<div class="btns"><button class="small" type="button" data-act="edit" data-id="' + esc(p.id) + '">✎ Edit</button><button class="small" type="button" data-act="checked" data-id="' + esc(p.id) + '">✔ Checked today</button></div></div>';
+  }
+  function searchBox() {
+    return '<label for="q">What do you need? Start typing</label><input id="q" class="search" type="search" autocomplete="off" spellcheck="false" value="' + esc(query) + '" placeholder="e.g. food tuesday, ride, shelter">' +
+      '<div class="muted small">Try a kind of help and a day: “meals sunday”, “pantry today”, “electric”.</div>';
+  }
+
+  function listScreen() {
+    var many = data.places.length > 22 && !settings.printSize;
+    return welcome() + '<div class="actions"><button class="primary" type="button" data-act="print">🖨 Print the one-page list</button><button type="button" data-act="add">＋ Add a place</button></div>' +
+      (many ? '<div class="muted small">Tip: with this many places, if the printout spills onto a second page, choose smaller print under More.</div>' : '') +
+      searchBox() + '<div id="results" aria-live="polite"></div>' + printArea();
+  }
+  function paintList() {
+    var list = matches(), groups = D.group(data, list), h = '';
+    h += '<p class="muted" id="count">' + (query.trim() ? list.length + (list.length === 1 ? ' place matches' : ' places match') + ' “' + esc(query.trim()) + '”. ' : list.length + ' places. ') + (query.trim() ? '<button class="link" type="button" data-act="clear">Show everything</button>' : '') + '</p>';
+    if (!list.length) h += '<div class="card">Nothing matches that. Try fewer words, or <button class="link" type="button" data-act="clear">show everything</button>. If a place is missing, tap <b>Add a place</b>.</div>';
+    groups.forEach(function (g) { h += '<h2>' + esc(g.cat.label) + ' <span class="muted small">(' + g.places.length + ')</span></h2>' + g.places.map(function (p) { return placeCard(p); }).join(''); });
+    document.getElementById('results').innerHTML = h;
+  }
+
+  function numbered() { // matching places in list order, each with its pin number
+    var n = 0, out = [];
+    D.group(data, matches()).forEach(function (g) { g.places.forEach(function (p) { out.push({ p: p, n: ++n }); }); });
+    return out;
+  }
+  function pinsFor(items) { return items.map(function (x) { return { id: x.p.id, n: x.n, lat: x.p.lat, lon: x.p.lon, color: cat(x.p.category).color, label: x.n + ' ' + x.p.name, selected: x.p.id === selId }; }); }
+  function mapView(pins) { return M.view(pins, { w: 900, h: 520, center: settings.center }); }
+  function mapScreen() {
+    return '<div class="actions"><button class="primary" type="button" data-act="print">🖨 Print the one-page list</button></div>' + searchBox() + '<div id="results" aria-live="polite"></div>';
+  }
+  function paintMap() {
+    var items = numbered(), pins = pinsFor(items), onMap = pins.filter(function (p) { return M.valid(p.lat, p.lon); }), v = mapView(onMap), off = items.filter(function (x) { return !M.valid(x.p.lat, x.p.lon); });
+    var online = navigator.onLine !== false, h = '';
+    h += '<p class="muted">' + (query.trim() ? items.length + ' on this map for “' + esc(query.trim()) + '”. ' : '') + (settings.tiles && online ? 'Street map shown.' : 'Showing pins only' + (online ? '.' : ' (no internet, so no street map).')) + '</p>';
+    h += onMap.length ? M.svg(v, onMap, { tiles: settings.tiles && online, label: 'Map of local help places' }) : '<div class="card">No places to show on the map. ' + (items.length ? 'None of the matches have a location yet.' : 'Try a different search.') + '</div>';
+    var sel = selId && place(selId); if (sel && items.some(function (x) { return x.p.id === selId; })) h += '<h2>Selected</h2>' + placeCard(sel, (items.filter(function (x) { return x.p.id === selId; })[0] || {}).n);
+    h += '<h2>All on this map</h2><div class="legend">' + items.filter(function (x) { return M.valid(x.p.lat, x.p.lon); }).map(function (x) { return '<button type="button" class="small" data-act="select" data-id="' + esc(x.p.id) + '"><span class="num" style="background:' + esc(cat(x.p.category).color) + '">' + x.n + '</span>' + esc(x.p.name) + '</button>'; }).join('') + '</div>';
+    if (off.length) h += '<div class="card"><b>Not on the map yet</b> (still in the list and on the printout):' + off.map(function (x) { return '<div class="line">' + esc(x.p.name) + ' <button class="small" type="button" data-act="edit" data-id="' + esc(x.p.id) + '">Add location</button></div>'; }).join('') + '</div>';
+    document.getElementById('results').innerHTML = h;
+  }
+  function pickScreen() {
+    var p = form, pins = data.places.filter(function (x) { return x.id !== form.id; }).map(function (x) { return { id: x.id, n: '•', lat: x.lat, lon: x.lon, color: '#6b7683', label: x.name }; }).filter(function (x) { return M.valid(x.lat, x.lon); });
+    var mine = M.valid(form.lat, form.lon) ? [{ id: 'me', n: '★', lat: form.lat, lon: form.lon, color: '#b3261e', label: 'This place', selected: true }] : [];
+    var v = mapView(pins.concat(mine));
+    return '<div class="pick"><b>Tap the map where “' + esc(form.name || 'this place') + '” is.</b><div class="muted small">Zoomed out too far? Tap the nearest pin’s area; you can move it again later.</div></div>' +
+      '<div id="pickmap">' + M.svg(v, pins.concat(mine), { tiles: settings.tiles && navigator.onLine !== false, label: 'Tap to place the pin' }) + '</div>' +
+      '<div class="actions"><button type="button" data-act="pickCancel">Back to the form</button></div>';
+  }
+
+  /* ---- add / edit form ---- */
+  function readForm() {
+    if (!form) return;
+    ['name', 'address', 'phone', 'times', 'hoursNote', 'notes'].forEach(function (k) { var el = document.getElementById('f_' + k); if (el) form[k] = el.value; });
+    var c = document.getElementById('f_category'); if (c) form.category = c.value;
+    var k = document.getElementById('f_checked'); if (k) form.checkedText = k.value;
+  }
+  function openForm(p) {
+    form = JSON.parse(JSON.stringify(p || D.blank('pantry', today()))); form.isNew = !p; form.origAddress = p ? p.address : null; form.checkedText = form.checked ? fmt(form.checked) : '';
+    screen = 'edit'; render(); window.scrollTo(0, 0); setTimeout(function () { var n = document.getElementById('f_name'); if (n && form.isNew) n.focus(); }, 0);
+  }
+  function editScreen() {
+    var f = form, opts = D.categories(data).map(function (c) { return '<option value="' + esc(c.id) + '"' + (c.id === f.category ? ' selected' : '') + '>' + esc(c.label) + '</option>'; }).join('');
+    var hasLoc = M.valid(f.lat, f.lon);
+    return '<div class="card"><h2 style="margin-top:0">' + (f.isNew ? 'Add a place' : 'Edit this place') + '</h2>' +
+      '<label for="f_category">Kind of help</label><select id="f_category">' + opts + '</select>' +
+      '<label for="f_name">Name</label><input id="f_name" value="' + esc(f.name) + '" autocomplete="off">' +
+      '<label for="f_address">Address</label><input id="f_address" value="' + esc(f.address) + '" autocomplete="off" placeholder="Street, town">' +
+      '<label for="f_phone">Phone</label><input id="f_phone" type="tel" value="' + esc(f.phone) + '" placeholder="301 555 0100">' +
+      '<label id="daylab">Open on these days</label><div class="days" role="group" aria-labelledby="daylab">' + D.SHORT.map(function (n, i) { return '<button type="button" data-act="day" data-v="' + i + '" aria-pressed="' + (f.days.indexOf(i) >= 0) + '">' + n + '</button>'; }).join('') + '</div>' +
+      '<div class="chips" style="margin-top:8px"><button class="small" type="button" data-act="daysSet" data-v="1,2,3,4,5">Mon–Fri</button><button class="small" type="button" data-act="daysSet" data-v="0,1,2,3,4,5,6">Every day</button><button class="small" type="button" data-act="daysSet" data-v="">Clear</button></div>' +
+      '<label for="f_times">Times</label><input id="f_times" value="' + esc(f.times) + '" placeholder="e.g. 10am–1pm" autocomplete="off">' +
+      '<label for="f_hoursNote">Hours note (optional)</label><input id="f_hoursNote" value="' + esc(f.hoursNote) + '" placeholder="e.g. first and third Saturday only" autocomplete="off">' +
+      '<label for="f_notes">Other notes (optional)</label><textarea id="f_notes" placeholder="Who it is for, what to bring">' + esc(f.notes) + '</textarea>' +
+      '<label for="f_checked">Hours last checked</label><input id="f_checked" value="' + esc(f.checkedText) + '" placeholder="e.g. today, or 10/9/26" autocomplete="off">' +
+      '<div class="muted small">Tidy this up by calling or checking the place’s own page, then put today’s date.</div>' +
+      '<details class="more"' + (hasLoc || f.isNew ? '' : ' open') + '><summary>Map location ' + (hasLoc ? '(set ✓)' : '(not set)') + '</summary>' +
+      '<p class="muted small">Saving a place looks up its address once when you have internet. You can also tap the map by hand.</p><div class="actions"><button type="button" data-act="lookup">Look up from address</button><button type="button" data-act="pickStart">Tap the map to place it</button>' + (hasLoc ? '<button type="button" data-act="locClear">Remove location</button>' : '') + '</div><div id="locmsg" class="small" aria-live="polite"></div></details>' +
+      '<div id="ferr" class="err" role="alert"></div>' +
+      '<div class="actions"><button class="primary" type="button" data-act="formSave">Save</button><button type="button" data-act="formCancel">Cancel</button>' + (f.isNew ? '' : '<button class="danger" type="button" data-act="formDelete">Delete this place</button>') + '</div></div>';
+  }
+  function formSave() {
+    readForm(); var f = form, err = document.getElementById('ferr');
+    if (!f.name.trim()) { err.textContent = 'Please type the name of the place.'; document.getElementById('f_name').focus(); return; }
+    var ct = (f.checkedText || '').trim(), iso = '';
+    if (ct) { iso = /^(today|now)$/i.test(ct) ? today() : ToolkitDates.parse(ct); if (!iso) { err.textContent = 'I could not read that date. Try “today”, 10/9/26 or Oct 9.'; document.getElementById('f_checked').focus(); return; } }
+    var snap = snapshot(), clean = D.sanitize({ categories: data.categories, places: [Object.assign({}, f, { checked: iso })] }).places[0];
+    if (!clean) return;
+    var i = data.places.map(function (p) { return p.id; }).indexOf(clean.id);
+    if (i >= 0) data.places[i] = clean; else data.places.push(clean);
+    if (settings.sample && f.isNew) { /* keep practice banner until Start fresh */ }
+    var needLookup = clean.address && (!M.valid(clean.lat, clean.lon) || clean.address !== f.origAddress) && !(f.pinnedByHand && M.valid(clean.lat, clean.lon));
+    selId = clean.id; save(); form = null; screen = 'list'; render(); toast('Saved “' + clean.name + '”.', snap);
+    if (needLookup) lookup(clean.id);
+  }
+  /* One free lookup of an address (OpenStreetMap Nominatim) -> Promise of {lat, lon}, or null. Never blocks saving; if it fails the place just has no pin yet. */
+  function geocode(address) {
+    if (!address || navigator.onLine === false || !window.fetch) return Promise.resolve(null);
+    var ctl = window.AbortController ? new AbortController() : null, to = setTimeout(function () { if (ctl) ctl.abort(); }, 8000);
+    return fetch('https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&q=' + encodeURIComponent(address), { signal: ctl ? ctl.signal : undefined, headers: { Accept: 'application/json' } })
+      .then(function (r) { return r.json(); }).then(function (j) { clearTimeout(to); return j && j[0] && isFinite(+j[0].lat) && isFinite(+j[0].lon) ? { lat: +j[0].lat, lon: +j[0].lon } : null; })
+      .catch(function () { clearTimeout(to); return null; });
+  }
+  function lookup(id) {
+    var p = place(id); if (!p) return;
+    geocode(p.address).then(function (ll) {
+      var q = place(id); if (!q || !ll) return; q.lat = ll.lat; q.lon = ll.lon; settings.center = settings.center || [ll.lat, ll.lon]; save();
+      toast('Pinned “' + q.name + '” on the map.'); if (screen === 'list' || screen === 'map') render();
+    });
+  }
+  function setMsg(t) { var m = document.getElementById('locmsg'); if (m) m.textContent = t; }
+
+  /* ---- more ---- */
+  function moreScreen() {
+    var sizes = [['', 'Normal'], ['small-print', 'Smaller'], ['tiny-print', 'Smallest']];
+    return '<div class="card"><h2 style="margin-top:0">Keep a copy safe</h2><p>Save everything to one small file, so nothing is lost if the tablet is wiped.</p><div class="actions"><button class="primary" type="button" data-act="backup">💾 Save a backup file</button><button type="button" data-act="restore">Open a backup file</button><button type="button" data-act="csv">Download for a spreadsheet</button></div>' + ToolkitBackup.fileInput('restoreFile') + '<div id="moreerr" class="err" role="alert"></div></div>' +
+      '<div class="card"><h2 style="margin-top:0">Names and printing</h2>' +
+      '<label for="s_org">Name shown at the top and on the printout</label><input id="s_org" data-set="org" value="' + esc(settings.org || '') + '">' +
+      '<label for="s_note">Note at the bottom of the printout</label><textarea id="s_note" data-set="deskNote">' + esc(settings.deskNote || '') + '</textarea>' +
+      '<label for="s_size">Print size</label><select id="s_size" data-set="printSize">' + sizes.map(function (s) { return '<option value="' + s[0] + '"' + ((settings.printSize || '') === s[0] ? ' selected' : '') + '>' + s[1] + '</option>'; }).join('') + '</select>' +
+      '<label for="s_stale">Ask people to call first when hours were last checked more than</label><select id="s_stale" data-set="staleDays">' + [30, 60, 90, 180].map(function (n) { return '<option value="' + n + '"' + ((settings.staleDays || 90) === n ? ' selected' : '') + '>' + n + ' days ago</option>'; }).join('') + '</select>' +
+      '<label><input type="checkbox" data-set="printPerKind" id="s_perkind"' + (settings.printPerKind ? ' checked' : '') + ' style="width:auto;min-height:0"> Print each kind of help on its own page</label>' +
+      '<label><input type="checkbox" data-set="tiles" id="s_tiles"' + (settings.tiles ? ' checked' : '') + ' style="width:auto;min-height:0"> Show street map behind the pins when there is internet</label></div>' +
+      '<details class="more"><summary>More options</summary><div class="actions"><button type="button" data-act="welcomeOn">Show the welcome again</button><button type="button" data-act="sample">Start over with practice data</button><button class="danger" type="button" data-act="fresh">Start fresh (empty list)</button></div>' +
+      '<p class="muted small">Everything is saved only on this device, in this browser. Only public place details are stored: never names or needs of the people you help.</p></details>';
+  }
+
+  /* ---- one-page printout (hidden on screen) ---- */
+  function printItem(p) { var st = D.isStale(p, today(), settings.staleDays); return '<div class="pl-item"><b>' + esc(p.name) + '</b><br>' + (p.address ? esc(p.address) + '<br>' : '') + (p.phone ? esc(p.phone) + ' · ' : '') + esc(D.hoursText(p)) + (p.notes ? '<br>' + esc(p.notes) : '') + '<br><i>' + (p.checked ? 'Checked ' + esc(fmt(p.checked)) : 'Not checked recently') + (st ? ' — please call first' : '') + '</i></div>'; }
+  /* Optional: one printed page per kind of help (printPerKind), each page with the same heading and note. */
+  function printPages(groups, latest) {
+    return groups.map(function (g) { return '<div class="print-page pl-page"><h1>' + esc(settings.org || 'Local help') + ': ' + esc(g.cat.label) + '</h1><div class="pl-sub">Free help nearby. Printed ' + esc(fmt(today())) + '. Most recent check: ' + esc(fmt(latest)) + '.</div>' +
+      '<section class="pl-kind"><h2>' + esc(g.cat.label) + '</h2>' + g.places.map(printItem).join('') + '</section>' + (settings.deskNote ? '<div class="pl-foot">' + esc(settings.deskNote) + '</div>' : '') + '</div>'; }).join('');
+  }
+  function printArea() {
+    var groups = D.group(data, data.places), latest = data.places.map(function (p) { return p.checked; }).sort().pop() || today();
+    if (settings.printPerKind) return '<div class="print-only print-section ' + esc(settings.printSize || '') + '" id="printArea">' + printPages(groups, latest) + '</div>';
+    return '<div class="print-only print-section ' + esc(settings.printSize || '') + '" id="printArea"><h1>' + esc(settings.org || 'Local help') + ': Local help</h1><div class="pl-sub">Free help nearby, grouped by kind. Printed ' + esc(fmt(today())) + '. Most recent check: ' + esc(fmt(latest)) + '.</div><div class="pl-cols">' +
+      groups.map(function (g) { return '<section><h2>' + esc(g.cat.label) + '</h2>' + g.places.map(printItem).join('') + '</section>'; }).join('') +
+      '</div>' + (settings.deskNote ? '<div class="pl-foot">' + esc(settings.deskNote) + '</div>' : '') + '</div>';
+  }
+  function doPrint() { var el = document.getElementById('printArea'); if (!el) { var d = document.createElement('div'); d.innerHTML = printArea(); document.body.appendChild(d.firstChild); } ToolkitPrint.print((settings.org || 'Local help') + ' - local help list'); }
+
+  /* ---- render ---- */
+  function render() {
+    var body = screen === 'list' ? listScreen() : screen === 'map' ? mapScreen() : screen === 'edit' ? editScreen() : screen === 'pick' ? pickScreen() : moreScreen();
+    $app.innerHTML = header() + '<div class="noprint">' + body.replace(/<div class="print-only[\s\S]*$/, '') + '</div>' + (screen === 'list' ? body.match(/<div class="print-only[\s\S]*$/)[0] : '') + (screen === 'edit' || screen === 'pick' ? '' : tabs());
+    if (screen === 'list') paintList(); else if (screen === 'map') paintMap();
+    netStatus();
+  }
+  function netStatus() { var n = document.getElementById('net'); if (n) n.textContent = navigator.onLine === false ? '● Offline: map shows pins only' : ''; }
+  window.addEventListener('online', function () { netStatus(); if (screen === 'map') paintMap(); });
+  window.addEventListener('offline', function () { netStatus(); if (screen === 'map') paintMap(); });
+
+  /* ---- events ---- */
+  $app.addEventListener('input', function (e) {
+    if (e.target.id === 'q') { query = e.target.value; if (screen === 'list') paintList(); else if (screen === 'map') paintMap(); }
+  });
+  $app.addEventListener('change', function (e) {
+    var k = e.target.getAttribute('data-set'); if (e.target.id === 'restoreFile') { return restoreFile(e.target); }
+    if (!k) return; settings[k] = e.target.type === 'checkbox' ? e.target.checked : (k === 'staleDays' ? +e.target.value : e.target.value); save();
+  });
+  $app.addEventListener('keydown', function (e) {
+    var g = e.target.closest && e.target.closest('.pin');
+    if (g && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); selId = g.getAttribute('data-id'); paintMap(); }
+  });
+  function restoreFile(input) {
+    var f = input.files && input.files[0]; if (!f) return; var err = document.getElementById('moreerr');
+    ToolkitBackup.read(f, function (e, r) {
+      input.value = '';
+      if (e) { err.textContent = 'That file does not look like a backup from this list. Pick a file ending in .json that you saved earlier.'; return; }
+      var nd = D.sanitize(r.data);
+      if (!window.confirm('Replace the current list (' + data.places.length + ' places) with the backup (' + nd.places.length + ' places)? You can undo this right after.')) return;
+      var snap = snapshot(); data = nd; if (r.settings && r.settings.org) settings.org = r.settings.org; if (r.settings && r.settings.deskNote != null) settings.deskNote = r.settings.deskNote; settings.sample = false; save(); render(); toast('Backup restored: ' + nd.places.length + ' places.', snap);
+    });
+  }
+  $app.addEventListener('click', function (e) {
+    var t = e.target.closest ? e.target.closest('[data-act],.pin,svg.tmap') : null; if (!t) return;
+    var act = t.getAttribute('data-act'), id = t.getAttribute('data-id');
+    if (!act && screen !== 'pick' && t.classList.contains('pin')) { selId = t.getAttribute('data-id'); if (screen === 'map') paintMap(); return; }
+    if (!act && screen === 'pick') { var ll = M.fromEvent(t, e, mapView(pickPins())); if (ll) { form.lat = ll.lat; form.lon = ll.lon; form.pinnedByHand = true; settings.center = settings.center || [ll.lat, ll.lon]; screen = 'edit'; render(); setMsg('Location set ✓'); } return; }
+    if (!act) return;
+    if (act === 'tab') return go(t.getAttribute('data-v'));
+    if (act === 'theme') { ToolkitTheme.toggle(settings); save(); return render(); }
+    if (act === 'welcomeOff') { settings.welcome = false; save(); return render(); }
+    if (act === 'welcomeOn') { settings.welcome = true; save(); return go('list'); }
+    if (act === 'clear') { query = ''; render(); var q = document.getElementById('q'); if (q) q.focus(); return; }
+    if (act === 'print') return doPrint();
+    if (act === 'add') return openForm(null);
+    if (act === 'edit') return openForm(place(id));
+    if (act === 'select') { selId = id; return paintMap(); }
+    if (act === 'checked') { var p = place(id), snap = snapshot(); p.checked = today(); save(); render(); return toast('Marked “' + p.name + '” as checked today.', snap); }
+    if (act === 'day') { var d = +t.getAttribute('data-v'), i = form.days.indexOf(d); if (i >= 0) form.days.splice(i, 1); else form.days.push(d); form.days.sort(function (a, b) { return a - b; }); t.setAttribute('aria-pressed', i < 0); return; }
+    if (act === 'daysSet') { readForm(); var v = t.getAttribute('data-v'); form.days = v ? v.split(',').map(Number) : []; return render(); }
+    if (act === 'formCancel') return go('list');
+    if (act === 'formSave') return formSave();
+    if (act === 'formDelete') { var pp = place(form.id); if (!window.confirm('Delete “' + pp.name + '” from the list?')) return; var sn = snapshot(); data.places = data.places.filter(function (x) { return x.id !== pp.id; }); save(); form = null; screen = 'list'; render(); return toast('Deleted “' + pp.name + '”.', sn); }
+    if (act === 'lookup') { readForm(); if (!form.address.trim()) return setMsg('Type the address first.'); if (navigator.onLine === false) return setMsg('No internet right now. Tap the map to place it instead.'); setMsg('Looking…'); var f0 = form; return geocode(f0.address).then(function (ll) { if (ll) { f0.lat = ll.lat; f0.lon = ll.lon; f0.pinnedByHand = true; setMsg('Found it. Location set ✓'); } else setMsg('I could not find that address (or the lookup failed). Check the spelling, or tap the map to place it.'); }); }
+    if (act === 'pickStart') { readForm(); screen = 'pick'; render(); return window.scrollTo(0, 0); }
+    if (act === 'pickCancel') { screen = 'edit'; return render(); }
+    if (act === 'locClear') { readForm(); form.lat = null; form.lon = null; return render(); }
+    if (act === 'backup') return ToolkitBackup.save({ app: 'resource-directory', filename: 'local-help-backup-' + today() + '.json', data: data, settings: { org: settings.org, deskNote: settings.deskNote } });
+    if (act === 'restore') return ToolkitBackup.pick('restoreFile');
+    if (act === 'csv') return ToolkitCsv.download('local-help-list-' + today() + '.csv', D.csvRows(data));
+    if (act === 'sample') { if (!window.confirm('Replace the list with made-up practice places? You can undo this right after.')) return; var s1 = snapshot(); startSample(); save(); go('list'); return toast('Practice data loaded.', s1); }
+    if (act === 'fresh') { if (!window.confirm('Remove all ' + data.places.length + ' places and start with an empty list? You can undo this right after.')) return; var fr = PD.startFresh({ data: data, settings: settings }, Object.assign({ empty: function () { return D.sanitize({ places: [] }); } }, PRACTICE)); data = fr.data; save(); go('list'); return toast('Started fresh, practice name and note cleared. Tap “Add a place” to begin.', fr.undo); }
+  });
+  function pickPins() { return data.places.filter(function (x) { return x.id !== form.id; }).map(function (x) { return { id: x.id, n: '•', lat: x.lat, lon: x.lon }; }).filter(function (x) { return M.valid(x.lat, x.lon); }).concat(M.valid(form.lat, form.lon) ? [{ id: 'me', n: '★', lat: form.lat, lon: form.lon }] : []); }
+  render();
+})();
+
+</script>
+</body></html>

@@ -1,0 +1,1163 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="dark">
+<title>Start fresh: before and after</title><style>
+:root{--bg:#12161c;--card:#1b222b;--ink:#eef2f6;--mute:#aab6c3;--line:#33404e;--accent:#6cc4a1;--bad:#ff8f8f;--ban:#4a3b12;--banink:#ffe9a8}
+html.light{--bg:#f6f7f4;--card:#fff;--ink:#14202b;--mute:#4a5866;--line:#c5ceda;--accent:#0b6b4d;--bad:#a11d1d;--ban:#fff1c2;--banink:#4a3600}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:18px/1.45 system-ui,sans-serif;padding:16px;max-width:1200px;margin:auto}
+h1{font-size:1.5rem;margin:.2em 0}h2{font-size:1.2rem;margin:0 0 .4em}p{margin:.4em 0}.muted{color:var(--mute)}
+button,a.btn{font:inherit;min-height:48px;padding:8px 18px;border-radius:10px;border:2px solid var(--line);background:var(--card);color:var(--ink);cursor:pointer;text-decoration:none;display:inline-flex;align-items:center}
+button.primary{background:var(--accent);color:#06130d;border-color:var(--accent);font-weight:700}html.light button.primary{color:#fff}
+button:focus-visible,a:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.tool{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;margin:16px 0}
+.row{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}.cols{display:grid;grid-template-columns:1fr 1fr;gap:12px}@media(max-width:700px){.cols{grid-template-columns:1fr}}
+.pane{border:2px solid var(--line);border-radius:12px;padding:10px;min-height:190px}.pane h3{margin:0 0 6px;font-size:.95rem;text-transform:uppercase;letter-spacing:.04em;color:var(--mute)}
+.title{font-weight:700;font-size:1.15rem;border-bottom:1px solid var(--line);padding-bottom:4px}.banner{background:var(--ban);color:var(--banink);padding:4px 8px;border-radius:8px;margin:6px 0;font-size:.9rem}
+.welcome{border:1px dashed var(--accent);padding:4px 8px;border-radius:8px;margin:6px 0;font-size:.9rem}
+ul{margin:6px 0;padding-left:20px}li{font-size:.95rem}.gone{color:var(--bad)}.ok{color:var(--accent)}.wait{color:var(--mute);font-style:italic}
+dl{margin:6px 0;font-size:.9rem}dt{color:var(--mute)}dd{margin:0 0 4px;word-break:break-word}
+</style></head><body>
+<header style="display:flex;justify-content:space-between;gap:8px;align-items:center;flex-wrap:wrap"><h1>Start fresh: before and after</h1><button id="theme" type="button" aria-label="Switch between dark and light">Light / dark</button></header>
+<p>Each tool below starts with made-up <b>practice data</b>. Press <b>Start fresh</b> and watch the sample name, note, banner and records disappear from the right-hand side. <b>Undo</b> brings them back. Everything here is made up and stays on this page.</p>
+<main id="tools"></main>
+<p class="muted">The buttons run the shared <code>practice-data</code> component on each tool's real sample data. To try the real thing, use the “Open the real tool” links (they are the actual tools; their Start fresh buttons are under <b>More</b>).</p>
+<script>
+/* CSV export for spreadsheets. Works in the browser and in Node (core logic can require it).
+   cell(v)  - one safe cell: quotes when needed, and defuses leading = + - @ so spreadsheets never run it as a formula
+   fromRows(rows) - array of arrays -> CSV text with Windows line breaks
+   parse(text) - the reverse: CSV text -> array of arrays. Handles quotes, line breaks inside cells, a byte-order mark, and , ; or tab separators.
+     Undoes the formula guard (a leading ' before = + - @) so a file this tool exported reads back unchanged.
+   download(filename, rows) - saves the file with a byte-order mark so Excel shows accents correctly (needs file-download) */
+(function (root) {
+  'use strict';
+  function cell(v) { v = String(v == null ? '' : v); if (/^[=+\-@]/.test(v)) v = "'" + v; return /[",\n\r]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; }
+  function fromRows(rows) { return rows.map(function (r) { return r.map(cell).join(','); }).join('\r\n'); }
+  function download(name, rows) { root.ToolkitDownload.save(name, '﻿' + fromRows(rows), 'text/csv'); }
+  function parse(text) {
+    text = String(text == null ? '' : text).replace(/^\uFEFF/, '');
+    var first = text.split(/\r?\n/, 1)[0], best = ',', bn = -1;
+    [',', ';', '\t'].forEach(function (d) { var n = first.split(d).length; if (n > 1 && n > bn) { best = d; bn = n; } });
+    var rows = [], row = [], c = '', q = false, i, ch;
+    for (i = 0; i < text.length; i++) {
+      ch = text[i];
+      if (q) { if (ch === '"') { if (text[i + 1] === '"') { c += '"'; i++; } else q = false; } else c += ch; }
+      else if (ch === '"' && c === '') q = true;
+      else if (ch === best) { row.push(c); c = ''; }
+      else if (ch === '\n' || ch === '\r') { if (ch === '\r' && text[i + 1] === '\n') i++; row.push(c); c = ''; rows.push(row); row = []; }
+      else c += ch;
+    }
+    if (c !== '' || row.length) { row.push(c); rows.push(row); }
+    return rows.map(function (r) { return r.map(function (v) { return /^'[=+\-@]/.test(v) ? v.slice(1) : v; }); })
+      .filter(function (r) { return r.length > 1 || (r.length === 1 && r[0].trim() !== ''); });
+  }
+  var api = { cell: cell, fromRows: fromRows, parse: parse, download: download };
+  root.ToolkitCsv = api;
+  if (typeof module !== 'undefined' && module.exports) module.exports = api;
+})(typeof window !== 'undefined' ? window : globalThis);
+
+</script>
+<script>
+/* Forgiving dates for forms. ToolkitDates.parse('10/9/26') -> '2026-10-09' (or '' if it is not a date).
+   Accepts 2026-10-09, 10/9/2026, 10/9/26, 10-9 (this year), "Oct 9 2026", "9 Oct 2026", and month + year only
+   ("10/2027", "Oct 2027") which means the LAST day of that month (how best-by dates on cans are usually read).
+   Also: iso(Date), today(), addDays(iso, n), daysBetween(fromIso, toIso), describe(days). Works in browser and Node. */
+(function (root) {
+  'use strict';
+  var MONTHS = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
+  function pad(n) { return (n < 10 ? '0' : '') + n; }
+  function iso(d) { return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); }
+  function today() { return iso(new Date()); }
+  function addDays(s, n) { var d = new Date(s + 'T12:00:00'); d.setDate(d.getDate() + n); return iso(d); }
+  function daysBetween(a, b) { return Math.round((new Date(b + 'T12:00:00') - new Date(a + 'T12:00:00')) / 86400000); }
+  function build(y, mo, d) {
+    if (y < 100) y += 2000;
+    var dt = new Date(y, mo - 1, d);
+    return dt.getFullYear() === y && dt.getMonth() === mo - 1 && dt.getDate() === d ? iso(dt) : '';
+  }
+  function monthNum(w) { var i = MONTHS.indexOf(String(w).slice(0, 3).toLowerCase()); return i < 0 ? 0 : i + 1; }
+  function lastDay(y, mo) { if (y < 100) y += 2000; return new Date(y, mo, 0).getDate(); }
+
+  function parse(s) {
+    s = String(s == null ? '' : s).replace(/[,\s]+/g, ' ').trim(); if (!s) return '';
+    var m, y = new Date().getFullYear();
+    if ((m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/))) return build(+m[1], +m[2], +m[3]);
+    if ((m = s.match(/^(\d{1,2})[\/.-](\d{4})$/))) return +m[1] >= 1 && +m[1] <= 12 ? build(+m[2], +m[1], lastDay(+m[2], +m[1])) : '';
+    if ((m = s.match(/^(\d{1,2})[\/.-](\d{1,2})(?:[\/.-](\d{2}|\d{4}))?$/))) return build(m[3] ? +m[3] : y, +m[1], +m[2]);
+    if ((m = s.match(/^([A-Za-z]{3,9})\.? (\d{4})$/)) && monthNum(m[1])) return build(+m[2], monthNum(m[1]), lastDay(+m[2], monthNum(m[1])));
+    if ((m = s.match(/^([A-Za-z]{3,9})\.? (\d{1,2})(?: (\d{2}|\d{4}))?$/)) && monthNum(m[1])) return build(m[3] ? +m[3] : y, monthNum(m[1]), +m[2]);
+    if ((m = s.match(/^(\d{1,2}) ([A-Za-z]{3,9})\.?(?: (\d{2}|\d{4}))?$/)) && monthNum(m[2])) return build(m[3] ? +m[3] : y, monthNum(m[2]), +m[1]);
+    return '';
+  }
+
+  /* 3 -> "3 days left", 1 -> "1 day left", 0 -> "today", -2 -> "2 days past" */
+  function describe(days) {
+    if (days === 0) return 'today';
+    var n = Math.abs(days); return n + (n === 1 ? ' day ' : ' days ') + (days > 0 ? 'left' : 'past');
+  }
+
+  root.ToolkitDates = { parse: parse, iso: iso, today: today, addDays: addDays, daysBetween: daysBetween, describe: describe };
+  if (typeof module !== 'undefined' && module.exports) module.exports = root.ToolkitDates;
+})(typeof window !== 'undefined' ? window : globalThis);
+
+</script>
+<script>
+/* Practice data helper: remembers which settings a tool filled with made-up values, and clears them on "start fresh".
+   Plain script (global ToolkitPracticeData) or require(). No storage of its own: it works on the tool's settings object.
+   Settings are cleared only when they still hold the practice value, so a name the charity typed is never touched. */
+(function (root, factory) {
+  if (typeof module === 'object' && module.exports) module.exports = factory(); else root.ToolkitPracticeData = factory();
+})(typeof self !== 'undefined' ? self : this, function () {
+  'use strict';
+  var MARK = 'practiceSet'; // settings.practiceSet = { key: practiceValue } for every setting seed() filled
+  var DEFAULT_FLAGS = { sample: { key: 'sample', practice: true, fresh: false }, welcome: { key: 'welcome', practice: true, fresh: false } };
+
+  function flags(opts) {
+    var f = (opts && opts.flags) || {}, o = {};
+    ['sample', 'welcome'].forEach(function (n) { o[n] = f[n] === null ? null : Object.assign({}, DEFAULT_FLAGS[n], f[n] || {}); });
+    return o;
+  }
+  function same(a, b) { return JSON.stringify(a) === JSON.stringify(b); }
+
+  /* Fill settings with practice values and remember them. values: {org: 'Example Pantry', ...}. Sets the practice banner and welcome flags. */
+  function seed(settings, values, opts) {
+    var f = flags(opts), rec = {};
+    Object.keys(values || {}).forEach(function (k) { settings[k] = values[k]; rec[k] = values[k]; });
+    settings[MARK] = Object.assign(settings[MARK] || {}, rec);
+    if (f.sample) settings[f.sample.key] = f.sample.practice;
+    if (f.welcome) settings[f.welcome.key] = f.welcome.practice;
+    return settings;
+  }
+
+  /* Which setting keys still hold a practice value? Checks what seed() recorded, plus opts.legacy ({key: [values]}) for data saved
+     before this component existed. */
+  function practiceKeys(settings, opts) {
+    var rec = settings[MARK] || {}, legacy = (opts && opts.legacy) || {}, out = [];
+    Object.keys(rec).concat(Object.keys(legacy)).forEach(function (k) {
+      if (out.indexOf(k) >= 0 || settings[k] === undefined) return;
+      var cands = [rec[k]].concat(legacy[k] || []).filter(function (v) { return v !== undefined; });
+      if (cands.some(function (v) { return same(v, settings[k]); })) out.push(k);
+    });
+    return out;
+  }
+
+  /* Clear every still-practice setting (to opts.blank, default ''), the banner and welcome flags, and the record of what was seeded.
+     Returns {cleared: [keys], kept: [keys the charity changed]}. */
+  function clearSettings(settings, opts) {
+    var f = flags(opts), blank = opts && 'blank' in opts ? opts.blank : '', rec = settings[MARK] || {}, legacy = (opts && opts.legacy) || {};
+    var cleared = practiceKeys(settings, opts), kept = Object.keys(rec).concat(Object.keys(legacy)).filter(function (k, i, a) {
+      return a.indexOf(k) === i && cleared.indexOf(k) < 0 && settings[k] !== undefined && settings[k] !== blank;
+    });
+    cleared.forEach(function (k) { settings[k] = blank; });
+    delete settings[MARK];
+    if (f.sample) settings[f.sample.key] = f.sample.fresh;
+    if (f.welcome) settings[f.welcome.key] = f.welcome.fresh;
+    return { cleared: cleared, kept: kept };
+  }
+
+  /* One undoable step. state = {data, settings}; opts.empty = function returning empty data (or the empty data itself);
+     opts.onSettings(settings) may reset other things such as a current-event id. Mutates settings in place; returns
+     {data, cleared, kept, undo} where undo is a string for restore(). */
+  function startFresh(state, opts) {
+    var undo = snapshot(state), r = clearSettings(state.settings, opts), empty = opts && opts.empty;
+    if (opts && opts.onSettings) opts.onSettings(state.settings);
+    return { data: typeof empty === 'function' ? empty() : empty, cleared: r.cleared, kept: r.kept, undo: undo };
+  }
+
+  /* Snapshot of data AND settings, so one Undo brings back both. */
+  function snapshot(state) { return JSON.stringify({ practiceData: 1, data: state.data, settings: state.settings }); }
+  /* Put settings back in place (same object) and return the data to re-sanitize. Also accepts an old data-only snapshot. */
+  function restore(str, settings) {
+    var o = JSON.parse(str);
+    if (!o || o.practiceData !== 1) return { data: o };
+    Object.keys(settings).forEach(function (k) { delete settings[k]; });
+    Object.assign(settings, o.settings);
+    return { data: o.data };
+  }
+
+  /* True if any text field of the tool's settings still equals a known practice value (used by tests). */
+  function leftovers(settings, practiceValues) {
+    var vals = Array.isArray(practiceValues) ? practiceValues : Object.keys(practiceValues).map(function (k) { return practiceValues[k]; });
+    return Object.keys(settings).filter(function (k) { return k !== MARK && vals.some(function (v) { return same(v, settings[k]); }); });
+  }
+
+  return { MARK: MARK, seed: seed, practiceKeys: practiceKeys, clearSettings: clearSettings, startFresh: startFresh, snapshot: snapshot, restore: restore, leftovers: leftovers };
+});
+
+</script>
+<script>
+/* event-checkin core: pure logic, no DOM, no storage. Works in browsers and Node.
+   Data: {version, guests:[{id,name,familyId|null,createdAt}], events:[{id,name,date}],
+          checkins:[{id,eventId,guestId,at}]}
+   Only a name is stored for each guest. Families are just a shared familyId. */
+(function (root) {
+  'use strict';
+  var C = {};
+  var seq = 0;
+  C.uid = function (p) { seq++; return (p || 'x') + Date.now().toString(36) + Math.random().toString(36).slice(2, 7) + seq.toString(36); };
+  C.emptyData = function () { return { version: 1, guests: [], events: [], checkins: [] }; };
+  C.norm = function (s) {
+    s = String(s == null ? '' : s).toLowerCase();
+    try { s = s.normalize('NFD').replace(/[̀-ͯ]/g, ''); } catch (e) {}
+    return s.replace(/[^a-z0-9 ]+/g, ' ').replace(/\s+/g, ' ').trim();
+  };
+  /* Tidy a typed name: trim, squash spaces, fix ALL CAPS / all lower case, "Last, First" -> "First Last". */
+  C.tidyName = function (s) {
+    s = String(s == null ? '' : s).replace(/\s+/g, ' ').trim().slice(0, 80);
+    if (s.indexOf(',') > 0 && s.split(',').length === 2) { var p = s.split(','); s = (p[1].trim() + ' ' + p[0].trim()).trim(); }
+    /* Fix a word only if it is all lower or all upper case; leave McDonald, DeShawn etc. alone. */
+    s = s.split(' ').map(function (w) {
+      if (w !== w.toLowerCase() && w !== w.toUpperCase()) return w;
+      return w.toLowerCase().replace(/(^|[\-'])([a-z\u00c0-\u024f])/g, function (m, x, y) { return x + y.toUpperCase(); });
+    }).join(' ');
+    return s;
+  };
+  C.today = function (d) { d = d || new Date(); return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2); };
+  /* Understands 2026-10-09 and "9 Oct 2026" (day/month numbers are ambiguous, so not guessed); else null. */
+  C.parseDate = function (s) {
+    s = String(s || '').trim(); var m = /^(\d{4})-(\d{1,2})-(\d{1,2})$/.exec(s), t;
+    if (m) t = new Date(+m[1], +m[2] - 1, +m[3]); else { var n = Date.parse(s); if (isNaN(n)) return null; t = new Date(n); }
+    if (isNaN(t.getTime()) || t.getFullYear() < 2000 || t.getFullYear() > 2100) return null;
+    return C.today(t);
+  };
+  C.sanitize = function (d) {
+    var o = C.emptyData(); if (!d || typeof d !== 'object') return o;
+    var gids = {}, eids = {}, seen = {};
+    (Array.isArray(d.guests) ? d.guests : []).forEach(function (g) {
+      if (!g || !g.id || !g.name || gids[g.id]) return;
+      gids[g.id] = 1; o.guests.push({ id: String(g.id), name: C.tidyName(g.name) || String(g.name).slice(0, 80), familyId: g.familyId ? String(g.familyId) : null, createdAt: +g.createdAt || 0 });
+    });
+    (Array.isArray(d.events) ? d.events : []).forEach(function (e) {
+      if (!e || !e.id || eids[e.id]) return; var dt = C.parseDate(e.date); if (!dt) return;
+      eids[e.id] = 1; o.events.push({ id: String(e.id), name: String(e.name || 'Event').slice(0, 80), date: dt });
+    });
+    (Array.isArray(d.checkins) ? d.checkins : []).forEach(function (c) {
+      if (!c || !gids[c.guestId] || !eids[c.eventId]) return;
+      var k = c.eventId + '|' + c.guestId; if (seen[k]) return; seen[k] = 1;
+      o.checkins.push({ id: String(c.id || C.uid('c')), eventId: c.eventId, guestId: c.guestId, at: +c.at || 0 });
+    });
+    C.leaveLoneFamilies(o);
+    return o;
+  };
+  C.guest = function (d, id) { for (var i = 0; i < d.guests.length; i++) if (d.guests[i].id === id) return d.guests[i]; return null; };
+  C.event = function (d, id) { for (var i = 0; i < d.events.length; i++) if (d.events[i].id === id) return d.events[i]; return null; };
+  C.findByName = function (d, name) { var n = C.norm(name); return d.guests.filter(function (g) { return C.norm(g.name) === n; })[0] || null; };
+  C.addGuest = function (d, name, familyId, now) {
+    name = C.tidyName(name); if (!C.norm(name)) return { error: 'Please type a name.' };
+    var ex = C.findByName(d, name); if (ex) return { guest: ex, existed: true };
+    var g = { id: C.uid('g'), name: name, familyId: familyId || null, createdAt: now || Date.now() };
+    d.guests.push(g); return { guest: g, existed: false };
+  };
+  /* names: typed names that belong together. Existing guests are reused and joined to the family. */
+  C.addFamily = function (d, names, now) {
+    var fid = C.uid('f'), out = [];
+    names.forEach(function (n) {
+      if (!C.norm(n)) return;
+      var r = C.addGuest(d, n, fid, now); if (r.error) return;
+      if (r.existed && r.guest.familyId && r.guest.familyId !== fid) { var keep = r.guest.familyId; out.forEach(function (g) { g.familyId = keep; }); fid = keep; }
+      r.guest.familyId = fid; if (out.indexOf(r.guest) < 0) out.push(r.guest);
+    });
+    C.leaveLoneFamilies(d);
+    return out;
+  };
+  C.familyMembers = function (d, g) { return g.familyId ? d.guests.filter(function (x) { return x.familyId === g.familyId; }) : [g]; };
+  C.leaveLoneFamilies = function (d) {
+    var n = {}; d.guests.forEach(function (g) { if (g.familyId) n[g.familyId] = (n[g.familyId] || 0) + 1; });
+    d.guests.forEach(function (g) { if (g.familyId && n[g.familyId] < 2) g.familyId = null; });
+  };
+  C.renameGuest = function (d, id, name) { var g = C.guest(d, id); name = C.tidyName(name); if (!g || !C.norm(name)) return false; g.name = name; return true; };
+  C.removeGuest = function (d, id) {
+    d.guests = d.guests.filter(function (g) { return g.id !== id; });
+    d.checkins = d.checkins.filter(function (c) { return c.guestId !== id; }); C.leaveLoneFamilies(d);
+  };
+  C.addEvent = function (d, name, date) {
+    name = String(name || '').replace(/\s+/g, ' ').trim().slice(0, 80); if (!name) return { error: 'Please give the event a name.' };
+    var dt = C.parseDate(date || C.today()); if (!dt) return { error: 'That date was not understood. Try it like 2026-10-11 or 11 Oct 2026.' };
+    var ex = d.events.filter(function (e) { return e.name.toLowerCase() === name.toLowerCase() && e.date === dt; })[0];
+    if (ex) return { event: ex, existed: true };
+    var e = { id: C.uid('e'), name: name, date: dt }; d.events.push(e); return { event: e, existed: false };
+  };
+  C.removeEvent = function (d, id) { d.events = d.events.filter(function (e) { return e.id !== id; }); d.checkins = d.checkins.filter(function (c) { return c.eventId !== id; }); };
+  C.eventsSorted = function (d) { return d.events.slice().sort(function (a, b) { return a.date < b.date ? 1 : a.date > b.date ? -1 : 0; }); };
+  C.isHere = function (d, eventId, guestId) { for (var i = 0; i < d.checkins.length; i++) if (d.checkins[i].eventId === eventId && d.checkins[i].guestId === guestId) return true; return false; };
+  C.checkIn = function (d, eventId, guestId, now) {
+    if (!C.event(d, eventId) || !C.guest(d, guestId) || C.isHere(d, eventId, guestId)) return false;
+    d.checkins.push({ id: C.uid('c'), eventId: eventId, guestId: guestId, at: now || Date.now() }); return true;
+  };
+  /* Checks in several people; returns the ids actually added (so Undo removes exactly those). */
+  C.checkInMany = function (d, eventId, ids, now) { return ids.filter(function (id) { return C.checkIn(d, eventId, id, now); }); };
+  C.undoCheckIn = function (d, eventId, guestId) {
+    var n = d.checkins.length; d.checkins = d.checkins.filter(function (c) { return !(c.eventId === eventId && c.guestId === guestId); }); return d.checkins.length < n;
+  };
+  C.visitCounts = function (d) { var m = {}; d.checkins.forEach(function (c) { m[c.guestId] = (m[c.guestId] || 0) + 1; }); return m; };
+  C.lastSeen = function (d) {
+    var ev = {}; d.events.forEach(function (e) { ev[e.id] = e.date; }); var m = {};
+    d.checkins.forEach(function (c) { var dt = ev[c.eventId]; if (dt && (!m[c.guestId] || dt > m[c.guestId])) m[c.guestId] = dt; }); return m;
+  };
+  /* Every typed word must start a word of the name. Best matches first, then frequent visitors.
+     Returns [{guest, here, visits}] (max `limit`). */
+  C.search = function (d, q, eventId, limit) {
+    var words = C.norm(q).split(' ').filter(Boolean); if (!words.length) return [];
+    var counts = C.visitCounts(d), res = [];
+    d.guests.forEach(function (g) {
+      var n = C.norm(g.name), parts = n.split(' '), score = 0, ok = true;
+      words.forEach(function (w) {
+        if (n.indexOf(w) === 0) score += 3;
+        else if (parts.some(function (p) { return p.indexOf(w) === 0; })) score += 2;
+        else ok = false;
+      });
+      if (!ok) return;
+      if (n === words.join(' ')) score += 5;
+      res.push({ guest: g, here: eventId ? C.isHere(d, eventId, g.id) : false, visits: counts[g.id] || 0, score: score });
+    });
+    res.sort(function (a, b) { return b.score - a.score || b.visits - a.visits || (a.guest.name < b.guest.name ? -1 : 1); });
+    return res.slice(0, limit || 30);
+  };
+  C.attendees = function (d, eventId) {
+    var gs = {}; d.guests.forEach(function (g) { gs[g.id] = g; });
+    return d.checkins.filter(function (c) { return c.eventId === eventId && gs[c.guestId]; })
+      .sort(function (a, b) { return b.at - a.at; }).map(function (c) { return { guest: gs[c.guestId], at: c.at }; });
+  };
+  /* Live headcount for one event. firstTime = people with no check-in at any earlier event. */
+  C.headcount = function (d, eventId) {
+    var ev = C.event(d, eventId); if (!ev) return { total: 0, firstTime: 0 };
+    var dates = {}; d.events.forEach(function (e) { dates[e.id] = e.date; });
+    var before = {}; d.checkins.forEach(function (c) { if (c.eventId !== eventId && dates[c.eventId] && dates[c.eventId] < ev.date) before[c.guestId] = 1; });
+    var total = 0, ft = 0;
+    d.checkins.forEach(function (c) { if (c.eventId !== eventId) return; total++; if (!before[c.guestId]) ft++; });
+    return { total: total, firstTime: ft };
+  };
+  C.fmtDate = function (iso) {
+    var p = /^(\d{4})-(\d\d)-(\d\d)$/.exec(iso || ''); if (!p) return iso || '';
+    var m = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    return +p[3] + ' ' + m[+p[2] - 1] + ' ' + p[1];
+  };
+  if (typeof module !== 'undefined' && module.exports) module.exports = C; else root.Checkin = C;
+})(typeof window !== 'undefined' ? window : this);
+
+</script>
+<script>
+/* Made-up sample data. Every name here is invented; no real people. Dates are relative to today. */
+(function (root) {
+  'use strict';
+  var FAMILIES = [
+    ['Marcus Alder', 'Priya Alder', 'Noah Alder', 'Ivy Alder'], ['Grace Bellamy', 'Tom Bellamy', 'Ruby Bellamy'],
+    ['Elena Castillo', 'Mateo Castillo', 'Sofia Castillo'], ['Jonas Dahl', 'Maren Dahl'],
+    ['Amara Okafor', 'Chidi Okafor', 'Zuri Okafor', 'Tobi Okafor'], ['Harold Finch', 'Margaret Finch'],
+    ['Lucy Tran', 'Danny Tran'], ['Peter Whitlock', 'Susan Whitlock', 'Abby Whitlock'],
+    ['Rosa Delgado', 'Luis Delgado', 'Ana Delgado'], ['Fatima Rahman', 'Yusuf Rahman', 'Layla Rahman', 'Omar Rahman']
+  ];
+  var SINGLES = ['Walter Pruitt', 'Dolores Haynes', 'Ethan Brooks', 'Mei Lin Park', 'George Abernathy', 'Hannah Voss', 'Samuel Njoroge',
+    'Beatrice Lund', 'Kai Morrow', 'Ines Ferreira', 'Raymond Cole', 'Tessa Quinn', 'Arjun Mehta', 'Nora Kessler', 'Felix Ostrander',
+    'Josephine Wray', 'Leo Santos', 'Edith Marlowe', 'Victor Hale', 'Clara Nyström'];
+  var KIDS = /Noah|Ivy|Ruby|Sofia|Zuri|Tobi|Abby|Ana |Layla|Omar|Danny/;
+  function daysAgo(n) { var d = new Date(); d.setDate(d.getDate() - n); return root.Checkin.today(d); }
+  root.CheckinSample = {
+    orgName: 'Hillside Community Church (sample data)',
+    build: function () {
+      var C = root.Checkin, d = C.emptyData(), t0 = Date.now() - 90 * 864e5, all = [], seed = 7;
+      function rnd() { seed = (seed * 9301 + 49297) % 233280; return seed / 233280; }
+      FAMILIES.forEach(function (f) { C.addFamily(d, f, t0).forEach(function (g) { all.push(g); }); });
+      SINGLES.forEach(function (n) { all.push(C.addGuest(d, n, null, t0).guest); });
+      var plan = [], dow = new Date().getDay();
+      for (var w = 5; w >= 1; w--) { plan.push(['Sunday service', w * 7 + dow]); plan.push(['Community meal', w * 7 + dow - 3]); }
+      plan.push(['Youth night', 10], ['Youth night', 24]);
+      plan.sort(function (a, b) { return b[1] - a[1]; });
+      plan.forEach(function (p) {
+        if (p[1] < 1) return;
+        var e = C.addEvent(d, p[0], daysAgo(p[1])).event, prob = p[0] === 'Sunday service' ? 0.66 : p[0] === 'Community meal' ? 0.55 : 0.5, fam = {};
+        all.forEach(function (g, i) {
+          if (p[0] === 'Youth night' && !KIDS.test(g.name + ' ') && i % 7) return;
+          var k = g.familyId || g.id; if (!(k in fam)) fam[k] = rnd() < prob;
+          if (fam[k]) C.checkIn(d, e.id, g.id, new Date(e.date + 'T10:' + ('0' + Math.floor(rnd() * 50)).slice(-2)).getTime());
+        });
+      });
+      // First-time visitors at the most recent community meal.
+      var meals = C.eventsSorted(d).filter(function (e) { return e.name === 'Community meal'; });
+      if (meals[0]) ['Quinn Everett', 'Dara Whitfield'].forEach(function (n) { C.checkIn(d, meals[0].id, C.addGuest(d, n, null, Date.now()).guest.id, new Date(meals[0].date + 'T12:15').getTime()); });
+      // Today's event, with a few people already in.
+      var today = C.addEvent(d, 'Sunday service', C.today()).event, n = 0;
+      all.forEach(function (g) { if (n < 14 && rnd() < 0.35) { C.checkIn(d, today.id, g.id, Date.now() - (n + 1) * 60000); n++; } });
+      return { data: C.sanitize(d), currentEventId: today.id };
+    }
+  };
+})(window);
+
+</script>
+<script>
+/* Pantry core: pure logic, no DOM, no storage. Works in browser and Node.
+   Data: {version, items:[{id,name,category,unit,lbPer,low}], moves:[{id,type,itemId,qty,date,donor,household,size,note,createdAt}]}
+   A donation ('in') may carry bestBy (ISO date or ''); a count correction ('adj') may carry lotId (the donation it pulled from the shelf).
+   unit: 'lb' (qty is pounds) or 'each' (qty is a count; lbPer = pounds in one). type: 'in' (donation) | 'out' (distribution) | 'adj' (count correction, qty may be negative; never counted as donated or served). */
+(function (root) {
+  'use strict';
+  var Csv = root.ToolkitCsv || require(require('path').join(__dirname, '..', '..', 'components', 'csv-export', 'csv.js')); // shared component (browser: loaded first)
+  var Dates = root.ToolkitDates || require(require('path').join(__dirname, '..', '..', 'components', 'date-parse', 'dates.js')); // shared component
+  var CATEGORIES = ['Canned vegetables', 'Canned protein', 'Fruit', 'Grains and pasta', 'Breakfast', 'Soup and sauce', 'Dairy and eggs', 'Fresh produce', 'Frozen', 'Baby and kids', 'Household and hygiene', 'Other'];
+
+  function uid(p) { return (p || 'x') + Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
+  function num(v) { var n = parseFloat(String(v == null ? '' : v).replace(',', '.')); return isFinite(n) ? n : 0; }
+  function round(n) { return Math.round(n * 100) / 100; }
+  function pad(n) { return (n < 10 ? '0' : '') + n; }
+  function iso(d) { return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); }
+  function today() { return iso(new Date()); }
+  function addDays(s, n) { var d = new Date(s + 'T12:00:00'); d.setDate(d.getDate() + n); return iso(d); }
+  function clean(s, max) { return String(s == null ? '' : s).replace(/\s+/g, ' ').trim().slice(0, max || 80); }
+
+  /* Accepts 2026-10-09, 10/9/2026, 10/9/26, 10-9. Returns ISO or ''. */
+  function parseDate(s) {
+    s = clean(s); if (!s) return '';
+    var m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/), y, mo, d;
+    if (m) { y = +m[1]; mo = +m[2]; d = +m[3]; }
+    else if ((m = s.match(/^(\d{1,2})[\/.-](\d{1,2})(?:[\/.-](\d{2,4}))?$/))) {
+      mo = +m[1]; d = +m[2]; y = m[3] ? +m[3] : new Date().getFullYear(); if (y < 100) y += 2000;
+    } else return '';
+    var dt = new Date(y, mo - 1, d);
+    if (dt.getFullYear() !== y || dt.getMonth() !== mo - 1 || dt.getDate() !== d) return '';
+    return iso(dt);
+  }
+
+  /* Household IDs are tidied to upper case: " h-014 " -> "H-014"; initials "j.s." -> "JS". */
+  function cleanHousehold(s) {
+    s = clean(s, 20).toUpperCase();
+    if (/^([A-Z]\.?){1,4}$/.test(s)) s = s.replace(/\./g, '');
+    return s;
+  }
+
+  function empty() { return { version: 1, items: [], moves: [] }; }
+
+  function sanitize(d) {
+    var out = empty();
+    if (!d || typeof d !== 'object') return out;
+    (Array.isArray(d.items) ? d.items : []).forEach(function (i) {
+      if (!i || !clean(i.name)) return;
+      out.items.push({ id: String(i.id || uid('i')), name: clean(i.name, 60), category: clean(i.category, 40) || 'Other',
+        unit: i.unit === 'lb' ? 'lb' : 'each', lbPer: i.unit === 'lb' ? 1 : (num(i.lbPer) > 0 ? num(i.lbPer) : 1), low: Math.max(0, num(i.low)) });
+    });
+    var ids = {}; out.items.forEach(function (i) { ids[i.id] = 1; });
+    (Array.isArray(d.moves) ? d.moves : []).forEach(function (m) {
+      if (!m || !ids[m.itemId] || (m.type !== 'in' && m.type !== 'out' && m.type !== 'adj') || (m.type === 'adj' ? num(m.qty) === 0 : !(num(m.qty) > 0))) return;
+      out.moves.push({ id: String(m.id || uid('m')), type: m.type, itemId: String(m.itemId), qty: num(m.qty), date: parseDate(m.date) || today(),
+        donor: clean(m.donor, 60), household: cleanHousehold(m.household), size: Math.max(0, Math.round(num(m.size))),
+        note: clean(m.note, 120), createdAt: m.createdAt || new Date().toISOString() });
+      var last = out.moves[out.moves.length - 1];
+      if (m.type === 'in') last.bestBy = Dates.parse(m.bestBy);
+      if (m.type === 'adj' && m.lotId) last.lotId = String(m.lotId);
+    });
+    return out;
+  }
+
+  function findItem(data, id) { for (var i = 0; i < data.items.length; i++) if (data.items[i].id === id) return data.items[i]; return null; }
+  function unitLabel(item, qty) { return item.unit === 'lb' ? 'lb' : (qty === 1 ? 'item' : 'items'); }
+  function pounds(item, qty) { return round(item.unit === 'lb' ? qty : qty * item.lbPer); }
+
+  function addItem(data, f) {
+    var name = clean(f.name, 60); if (!name) return { error: 'Please type what the item is called.' };
+    var dup = data.items.filter(function (i) { return i.name.toLowerCase() === name.toLowerCase(); })[0];
+    if (dup) return { error: '"' + dup.name + '" is already on the list. Choose it from the list instead.' };
+    var item = { id: uid('i'), name: name, category: clean(f.category, 40) || 'Other', unit: f.unit === 'lb' ? 'lb' : 'each',
+      lbPer: f.unit === 'lb' ? 1 : (num(f.lbPer) > 0 ? num(f.lbPer) : 1), low: Math.max(0, num(f.low)) };
+    data.items.push(item); return { item: item };
+  }
+
+  /* f: {type,itemId,qty,date,donor,household,size,note} */
+  function addMove(data, f) {
+    var item = findItem(data, f.itemId);
+    if (!item) return { error: 'Please choose an item.' };
+    var qty = num(f.qty);
+    if (!(qty > 0)) return { error: 'Please enter how many (a number bigger than zero).' };
+    var date = f.date ? parseDate(f.date) : today();
+    if (!date) return { error: 'That date does not look right. Try something like 10/9/2026.' };
+    var bestBy = '';
+    if (f.type !== 'out' && clean(f.bestBy)) {
+      bestBy = Dates.parse(f.bestBy);
+      if (!bestBy) return { error: 'The best-by date does not look right. Try something like 10/2027 or 3/15/2027, or leave it empty.' };
+    }
+    var warn = '';
+    if (f.type === 'out' && qty > stockOf(data, item.id)) warn = 'Only ' + round(stockOf(data, item.id)) + ' ' + unitLabel(item, 2) + ' of ' + item.name + ' on the shelf by our records. Saved anyway; check the count when you can.';
+    var m = { id: uid('m'), type: f.type === 'out' ? 'out' : 'in', itemId: item.id, qty: qty, date: date, donor: clean(f.donor, 60),
+      household: cleanHousehold(f.household), size: Math.max(0, Math.round(num(f.size))), note: clean(f.note, 120), createdAt: new Date().toISOString() };
+    if (m.type === 'in') {
+      m.bestBy = bestBy;
+      if (bestBy && bestBy < today()) warn = 'That best-by date has already passed, so this will show on the "pull these" list.';
+    }
+    data.moves.push(m); return { move: m, warning: warn };
+  }
+
+  /* Count correction: the volunteer says how many are really on the shelf; we record the difference. */
+  function adjustStock(data, itemId, actual) {
+    var item = findItem(data, itemId); if (!item) return { error: 'Please choose an item.' };
+    if (String(actual == null ? '' : actual).trim() === '' || !isFinite(parseFloat(String(actual).replace(',', '.'))) || num(actual) < 0) return { error: 'Please type how many are on the shelf now (0 or more).' };
+    var diff = round(num(actual) - stockOf(data, itemId));
+    if (diff === 0) return { unchanged: true };
+    var m = { id: uid('m'), type: 'adj', itemId: itemId, qty: diff, date: today(), donor: '', household: '', size: 0, note: 'Count correction', createdAt: new Date().toISOString() };
+    data.moves.push(m); return { move: m };
+  }
+
+  /* f: {name, category, low, lbPer}. Changes the item's details; stock history is untouched. */
+  function updateItem(data, id, f) {
+    var item = findItem(data, id); if (!item) return { error: 'That item was not found.' };
+    var name = clean(f.name, 60); if (!name) return { error: 'Please type what the item is called.' };
+    var dup = data.items.filter(function (i) { return i.id !== id && i.name.toLowerCase() === name.toLowerCase(); })[0];
+    if (dup) return { error: '"' + dup.name + '" is already on the list.' };
+    item.name = name; item.category = clean(f.category, 40) || 'Other'; item.low = Math.max(0, num(f.low));
+    if (item.unit !== 'lb') item.lbPer = num(f.lbPer) > 0 ? num(f.lbPer) : item.lbPer;
+    return { item: item };
+  }
+
+  function removeMove(data, id) {
+    for (var i = 0; i < data.moves.length; i++) if (data.moves[i].id === id) return data.moves.splice(i, 1)[0];
+    return null;
+  }
+  function restoreMove(data, m) { if (m) data.moves.push(m); }
+
+  function stockOf(data, itemId) {
+    var s = 0; data.moves.forEach(function (m) { if (m.itemId === itemId) s += m.type === 'out' ? -m.qty : m.qty; });
+    return round(s);
+  }
+
+  /* One row per item: {item, stock, lbs, status:'out'|'low'|'ok'} sorted with the most urgent first. */
+  function stockList(data) {
+    var rows = data.items.map(function (item) {
+      var st = stockOf(data, item.id);
+      var status = st <= 0 ? 'out' : (item.low > 0 && st <= item.low ? 'low' : 'ok');
+      return { item: item, stock: Math.max(st, 0), lbs: pounds(item, Math.max(st, 0)), status: status };
+    });
+    var rank = { out: 0, low: 1, ok: 2 };
+    rows.sort(function (a, b) { return rank[a.status] - rank[b.status] || a.item.name.localeCompare(b.item.name); });
+    return rows;
+  }
+
+  function totals(data) {
+    var lbs = 0, flagged = 0;
+    stockList(data).forEach(function (r) { lbs += r.lbs; if (r.status !== 'ok') flagged++; });
+    return { lbs: round(lbs), flagged: flagged, items: data.items.length };
+  }
+
+  /* Most recent first. Each row gets item and lbs for display. */
+  function activity(data, limit) {
+    var rows = data.moves.slice().sort(function (a, b) { return a.date < b.date ? 1 : a.date > b.date ? -1 : (a.createdAt < b.createdAt ? 1 : -1); });
+    rows = rows.map(function (m) { var item = findItem(data, m.itemId); return { move: m, item: item, lbs: pounds(item, m.qty) }; });
+    return limit ? rows.slice(0, limit) : rows;
+  }
+
+  function knownHouseholds(data) {
+    var seen = {}, list = [];
+    data.moves.slice().sort(function (a, b) { return a.date < b.date ? 1 : -1; }).forEach(function (m) {
+      if (m.household && !seen[m.household]) { seen[m.household] = 1; list.push(m.household); }
+    });
+    return list;
+  }
+  function knownDonors(data) {
+    var seen = {}, list = [];
+    data.moves.forEach(function (m) { if (m.donor && !seen[m.donor.toLowerCase()]) { seen[m.donor.toLowerCase()] = 1; list.push(m.donor); } });
+    return list.sort();
+  }
+  /* Household size last used for this ID, so volunteers need not retype it. */
+  function lastSize(data, household) {
+    var h = cleanHousehold(household), best = null;
+    data.moves.forEach(function (m) { if (m.type === 'out' && m.household === h && m.size && (!best || m.date >= best.date)) best = m; });
+    return best ? best.size : 0;
+  }
+
+  function stockRows(data) {
+    var rows = [['Item', 'Category', 'On shelf', 'Unit', 'Pounds', 'Low-stock level', 'Status']];
+    stockList(data).forEach(function (r) { rows.push([r.item.name, r.item.category, r.stock, r.item.unit === 'lb' ? 'lb' : 'items', r.lbs, r.item.low, r.status === 'ok' ? 'OK' : r.status === 'low' ? 'Low' : 'Out']); });
+    return rows;
+  }
+  function activityRows(data) {
+    var rows = [['Date', 'Type', 'Item', 'Category', 'Quantity', 'Unit', 'Pounds', 'Donor', 'Household', 'Household size', 'Best-by date', 'Note']];
+    activity(data).forEach(function (r) {
+      var m = r.move; rows.push([m.date, m.type === 'in' ? 'Donation' : m.type === 'adj' ? 'Count correction' : 'Distribution', r.item.name, r.item.category, m.qty, r.item.unit === 'lb' ? 'lb' : 'items', r.lbs, m.donor, m.household, m.size || '', m.bestBy || '', m.note]);
+    });
+    return rows;
+  }
+
+  /* ---------- Best-by dates ----------
+     Each donation with a date is a "lot". Food given out is taken from the soonest date that has not yet passed
+     (undated next, past-date last), replayed in date order. A volunteer can also "pull" a lot (a count correction tied to it). */
+  var DEFAULT_RULES = { soonDays: 30, graceDays: 0 };
+  function rules(r) {
+    r = r || {};
+    return { soonDays: Math.max(0, Math.round(num(r.soonDays == null || r.soonDays === '' ? DEFAULT_RULES.soonDays : r.soonDays))),
+      graceDays: Math.max(0, Math.round(num(r.graceDays))) };
+  }
+  function byTime(a, b) { return a.date < b.date ? -1 : a.date > b.date ? 1 : (a.createdAt < b.createdAt ? -1 : a.createdAt > b.createdAt ? 1 : 0); }
+
+  /* Everything still on the shelf, by donation: [{id,itemId,item,bestBy,left,lbs,received,donor}] */
+  function lots(data) {
+    var all = [], byItem = {};
+    data.moves.slice().sort(byTime).forEach(function (m) {
+      var item = findItem(data, m.itemId); if (!item) return;
+      var list = byItem[m.itemId] = byItem[m.itemId] || [], lot;
+      if (m.type === 'in' || (m.type === 'adj' && m.qty > 0 && !m.lotId)) {
+        lot = { id: m.id, itemId: m.itemId, item: item, bestBy: m.type === 'in' ? (m.bestBy || '') : '', left: m.qty, received: m.date, donor: m.donor || '' };
+        list.push(lot); all.push(lot);
+      } else if (m.type === 'adj' && m.lotId) {
+        list.forEach(function (l) { if (l.id === m.lotId) l.left = Math.max(0, round(l.left + m.qty)); });
+      } else { // given out, or a negative count correction
+        var need = Math.abs(m.qty);
+        var order = list.filter(function (l) { return l.left > 0; }).sort(function (a, b) {
+          function rank(l) { return l.bestBy && l.bestBy < m.date ? 2 : l.bestBy ? 0 : 1; }
+          return rank(a) - rank(b) || (a.bestBy < b.bestBy ? -1 : a.bestBy > b.bestBy ? 1 : 0);
+        });
+        order.forEach(function (l) { if (need <= 0) return; var t = Math.min(l.left, need); l.left = round(l.left - t); need = round(need - t); });
+      }
+    });
+    return all.filter(function (l) { return l.left > 0; }).map(function (l) { l.lbs = pounds(l.item, l.left); return l; });
+  }
+
+  /* {expired:[], soon:[], later:[], undated:[]}; each row is a lot plus days (to best-by; negative = past).
+     expired: more than graceDays past the date. soon: within soonDays (soonest first). */
+  function expiryReport(data, r, onDate) {
+    r = rules(r); var t = onDate || today();
+    var out = { expired: [], soon: [], later: [], undated: [], rules: r, date: t };
+    lots(data).forEach(function (l) {
+      if (!l.bestBy) { out.undated.push(l); return; }
+      l.days = Dates.daysBetween(t, l.bestBy);
+      (l.days < -r.graceDays ? out.expired : l.days <= r.soonDays ? out.soon : out.later).push(l);
+    });
+    function asc(a, b) { return a.bestBy < b.bestBy ? -1 : a.bestBy > b.bestBy ? 1 : a.item.name.localeCompare(b.item.name); }
+    out.expired.sort(asc); out.soon.sort(asc); out.later.sort(asc);
+    out.undated.sort(function (a, b) { return a.item.name.localeCompare(b.item.name); });
+    return out;
+  }
+
+  /* Take a whole lot off the shelf (past its date, damaged...). Returns {move} so the caller can undo with removeMove. */
+  function pullLot(data, lotId, why) {
+    var lot = lots(data).filter(function (l) { return l.id === lotId; })[0];
+    if (!lot) return { error: 'That item is no longer on the shelf list.' };
+    var m = { id: uid('m'), type: 'adj', itemId: lot.itemId, qty: -lot.left, date: today(), donor: '', household: '', size: 0, note: clean(why, 120) || 'Pulled from the shelf', createdAt: new Date().toISOString(), lotId: lotId };
+    data.moves.push(m); return { move: m, lot: lot };
+  }
+
+  function expiryRows(data, r, onDate) {
+    var rep = expiryReport(data, r, onDate), rows = [['Status', 'Item', 'Category', 'Quantity', 'Unit', 'Best-by date', 'Days left (negative = past)', 'Received', 'Donor']];
+    function add(label, list) { list.forEach(function (l) { rows.push([label, l.item.name, l.item.category, l.left, l.item.unit === 'lb' ? 'lb' : 'items', l.bestBy, l.days == null ? '' : l.days, l.received, l.donor]); }); }
+    add('Past its date', rep.expired); add('Use first', rep.soon); add('Later', rep.later); add('No date', rep.undated);
+    return rows;
+  }
+
+  root.Pantry = { CATEGORIES: CATEGORIES, uid: uid, num: num, round: round, today: today, iso: iso, addDays: addDays, parseDate: parseDate,
+    cleanHousehold: cleanHousehold, empty: empty, sanitize: sanitize, findItem: findItem, unitLabel: unitLabel, pounds: pounds, addItem: addItem,
+    addMove: addMove, DEFAULT_RULES: DEFAULT_RULES, rules: rules, lots: lots, expiryReport: expiryReport, pullLot: pullLot, expiryRows: expiryRows, expiryCsv: function (d, r) { return Csv.fromRows(expiryRows(d, r)); }, adjustStock: adjustStock, updateItem: updateItem, removeMove: removeMove, restoreMove: restoreMove, stockOf: stockOf, stockList: stockList, totals: totals, activity: activity,
+    knownHouseholds: knownHouseholds, knownDonors: knownDonors, lastSize: lastSize, stockRows: stockRows, activityRows: activityRows, stockCsv: function (d) { return Csv.fromRows(stockRows(d)); }, activityCsv: function (d) { return Csv.fromRows(activityRows(d)); } };
+  if (typeof module !== 'undefined' && module.exports) module.exports = root.Pantry;
+})(typeof window !== 'undefined' ? window : globalThis);
+
+</script>
+<script>
+/* Made-up sample for a small rural pantry. Dates are relative to today. No real people. */
+(function (root) {
+  'use strict';
+  var P = root.Pantry;
+  var ITEMS = [ // name, category, unit, lbPer, low
+    ['Canned green beans', 'Canned vegetables', 'each', 0.9, 24], ['Canned corn', 'Canned vegetables', 'each', 0.9, 24],
+    ['Canned tomatoes', 'Canned vegetables', 'each', 1.8, 12], ['Canned tuna', 'Canned protein', 'each', 0.4, 20],
+    ['Peanut butter', 'Canned protein', 'each', 1.1, 12], ['Dried pinto beans (1 lb bag)', 'Canned protein', 'each', 1, 15],
+    ['Canned peaches', 'Fruit', 'each', 1, 12], ['Applesauce cups', 'Fruit', 'each', 0.25, 24],
+    ['Spaghetti (1 lb box)', 'Grains and pasta', 'each', 1, 20], ['White rice', 'Grains and pasta', 'lb', 1, 40],
+    ['Oatmeal canisters', 'Breakfast', 'each', 1.5, 10], ['Cereal boxes', 'Breakfast', 'each', 0.8, 15],
+    ['Chicken noodle soup', 'Soup and sauce', 'each', 0.7, 24], ['Pasta sauce jars', 'Soup and sauce', 'each', 1.5, 12],
+    ['Eggs (dozen)', 'Dairy and eggs', 'each', 1.5, 6], ['Shelf-stable milk', 'Dairy and eggs', 'each', 2.1, 8],
+    ['Potatoes', 'Fresh produce', 'lb', 1, 30], ['Apples', 'Fresh produce', 'lb', 1, 20],
+    ['Frozen ground turkey', 'Frozen', 'lb', 1, 15], ['Diapers (pack)', 'Baby and kids', 'each', 2, 4],
+    ['Bar soap', 'Household and hygiene', 'each', 0.3, 20], ['Toilet paper (4-roll)', 'Household and hygiene', 'each', 1.5, 6]];
+  var DONORS = ['Valley Grocery', 'First Church food drive', 'Hill Farm', 'Regional Food Bank', 'Anonymous', 'Scout Troop 12', 'Grange Hall'];
+
+  function seed(n) { var s = n || 7; return function () { s = (s * 9301 + 49297) % 233280; return s / 233280; }; }
+
+  root.PantrySample = {
+    org: 'Maple Hollow Community Pantry',
+    make: function () {
+      var rnd = seed(11), d = P.empty(), ids = [];
+      ITEMS.forEach(function (r) { var res = P.addItem(d, { name: r[0], category: r[1], unit: r[2], lbPer: r[3], low: r[4] }); ids.push(res.item.id); });
+      var homes = []; for (var h = 1; h <= 26; h++) homes.push('H-' + (h < 10 ? '00' : '0') + h);
+      homes.push('JS', 'AM', 'RT');
+      var sizes = {}; homes.forEach(function (h) { sizes[h] = 1 + Math.floor(rnd() * 5); });
+      function pick(a) { return a[Math.floor(rnd() * a.length)]; }
+      function add(f, date) { f.date = date; var r = P.addMove(d, f); if (r.move) r.move.createdAt = date + 'T12:00:00.000Z'; }
+      for (var back = 75; back >= 0; back--) {
+        var dt = P.addDays(P.today(), -back), dow = new Date(dt + 'T12:00:00').getDay();
+        if (dow === 2 || dow === 5) { // donation days: Tue, Fri
+          for (var k = 0; k < 7; k++) {
+            var ix = Math.floor(rnd() * ids.length), it = d.items[ix];
+            var fresh = it.category === 'Fresh produce' || it.category === 'Dairy and eggs' && it.name.indexOf('Eggs') === 0;
+            var life = fresh ? 7 + Math.floor(rnd() * 14) : it.category === 'Household and hygiene' || it.category === 'Baby and kids' ? 0 : 60 + Math.floor(rnd() * 600);
+            add({ type: 'in', itemId: ids[ix], qty: it.unit === 'lb' ? 10 + Math.floor(rnd() * 40) : 6 + Math.floor(rnd() * 30), donor: pick(DONORS),
+              bestBy: life ? P.addDays(dt, life) : '' }, dt);
+          }
+        }
+        if (dow === 3 || dow === 6) { // distribution days: Wed, Sat
+          var families = 4 + Math.floor(rnd() * 5);
+          for (var f = 0; f < families; f++) {
+            var home = pick(homes);
+            for (var j = 0; j < 4 + Math.floor(rnd() * 3); j++) {
+              var jx = Math.floor(rnd() * ids.length), jt = d.items[jx];
+              var have = P.stockOf(d, ids[jx]); if (have <= 0) continue;
+              var q = jt.unit === 'lb' ? Math.min(have, 3 + Math.floor(rnd() * 5)) : Math.min(have, 1 + Math.floor(rnd() * 4));
+              add({ type: 'out', itemId: ids[jx], qty: q, household: home, size: sizes[home] }, dt);
+            }
+          }
+        }
+      }
+      // make sure the demo shows a few flags
+      [['Canned tuna', 4], ['Diapers (pack)', 0], ['Eggs (dozen)', 3]].forEach(function (p) {
+        var it = d.items.filter(function (i) { return i.name === p[0]; })[0], have = P.stockOf(d, it.id);
+        if (have > p[1]) add({ type: 'out', itemId: it.id, qty: have - p[1], household: 'H-004', size: sizes['H-004'] }, P.today());
+      });
+      // a few lots with dates close to today, so the "use first" and "past its date" lists have something to show
+      [['Canned peaches', -14, 6], ['Applesauce cups', -3, 10], ['Chicken noodle soup', 2, 12], ['Cereal boxes', 5, 8], ['Eggs (dozen)', 6, 6],
+       ['Canned green beans', 11, 14], ['Peanut butter', 19, 9], ['Oatmeal canisters', 27, 7], ['Shelf-stable milk', -1, 4]].forEach(function (p) {
+        var it = d.items.filter(function (i) { return i.name === p[0]; })[0];
+        add({ type: 'in', itemId: it.id, qty: p[2], donor: pick(DONORS), bestBy: P.addDays(P.today(), p[1]) }, P.today());
+      });
+      return d;
+    }
+  };
+})(window);
+
+</script>
+<script>
+/* Resource directory core: a list of local help places (food, meals, rides, shelter...) with structured open days.
+   No organization details here. Works in the browser and in Node. Needs ToolkitSearch (typeahead-search) loaded first.
+   Place: {id, category, name, address, phone, days:[0-6 Sun..Sat], times, hoursNote, notes, checked:'YYYY-MM-DD', lat, lon}
+   Data:  {places:[...], categories:[{id,label,color,words}]}   (categories optional: defaults are filled in) */
+(function (root) {
+  'use strict';
+  var S = root.ToolkitSearch; // load components/typeahead-search/search.js first
+  var DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  var SHORT = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  var CATEGORIES = [
+    { id: 'pantry', label: 'Food pantries', color: '#1f7a45', words: 'food pantry groceries grocery hungry box' },
+    { id: 'meals', label: 'Free meals', color: '#b45309', words: 'food meal meals lunch dinner breakfast hot soup kitchen eat supper' },
+    { id: 'rides', label: 'Rides to medical appointments', color: '#1c55b0', words: 'ride rides transport transportation medical doctor appointment clinic driver van' },
+    { id: 'shelter', label: 'Shelters', color: '#7e3fb0', words: 'shelter bed beds housing homeless overnight warming sleep' },
+    { id: 'utilities', label: 'Utility help', color: '#b3261e', words: 'utility utilities electric electricity gas heat heating water bill bills power' },
+    { id: 'other', label: 'Other help', color: '#46505b', words: 'other clothing legal' }
+  ];
+  var DAY_WORDS = { weekend: [0, 6], weekends: [0, 6], weekday: [1, 2, 3, 4, 5], weekdays: [1, 2, 3, 4, 5] };
+
+  function str(v, max) { return String(v == null ? '' : v).replace(/\s+/g, ' ').trim().slice(0, max || 200); }
+  function uid() { return 'p' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
+  function isoOk(s) { return /^\d{4}-\d{2}-\d{2}$/.test(s || '') ? s : ''; }
+  function num(v, lim) { if (v === '' || v == null) return null; v = +v; return isFinite(v) && Math.abs(v) <= lim ? v : null; }
+
+  /* 3015550142 / 301.555.0142 / 1-301-555-0142 -> (301) 555-0142; anything else (extensions, 211) is kept as typed */
+  function tidyPhone(p) {
+    p = str(p, 40); var d = p.replace(/\D/g, '');
+    if (d.length === 11 && d[0] === '1') d = d.slice(1);
+    if (d.length === 10 && /^[\d\s().\-+]+$/.test(p)) return '(' + d.slice(0, 3) + ') ' + d.slice(3, 6) + '-' + d.slice(6);
+    return p;
+  }
+  function cats(data) { return data && data.categories && data.categories.length ? data.categories : CATEGORIES; }
+  function cleanPlace(p, cl) {
+    p = p || {}; var ids = cl.map(function (c) { return c.id; }), seen = {}, days = [];
+    (Array.isArray(p.days) ? p.days : []).forEach(function (d) { d = +d; if (d >= 0 && d <= 6 && d === Math.floor(d) && !seen[d]) { seen[d] = 1; days.push(d); } });
+    days.sort(function (a, b) { return a - b; });
+    var lat = num(p.lat, 90), lon = num(p.lon, 180); if (lat == null || lon == null) { lat = null; lon = null; }
+    return { id: str(p.id, 40) || uid(), category: ids.indexOf(p.category) >= 0 ? p.category : ids[ids.length - 1], name: str(p.name, 120), address: str(p.address, 200), phone: tidyPhone(p.phone),
+      days: days, times: str(p.times, 60), hoursNote: str(p.hoursNote, 160), notes: str(p.notes, 300), checked: isoOk(p.checked), lat: lat, lon: lon };
+  }
+  function sanitize(d) {
+    d = d && typeof d === 'object' ? d : {};
+    var cl = Array.isArray(d.categories) && d.categories.length ? d.categories.map(function (c) { return { id: str(c.id, 30), label: str(c.label, 60), color: /^#[0-9a-f]{6}$/i.test(c.color) ? c.color : '#46505b', words: str(c.words, 300) }; }).filter(function (c) { return c.id && c.label; }) : CATEGORIES;
+    if (!cl.length) cl = CATEGORIES;
+    return { categories: cl, places: (Array.isArray(d.places) ? d.places : []).map(function (p) { return cleanPlace(p, cl); }).filter(function (p) { return p.name; }) };
+  }
+  function blank(category, today) { return { id: uid(), category: category || 'pantry', name: '', address: '', phone: '', days: [], times: '', hoursNote: '', notes: '', checked: today || '', lat: null, lon: null }; }
+
+  /* [1,2,3,5] -> "Mon–Wed, Fri"; all seven -> "Every day" */
+  function dayList(days) {
+    if (!days.length) return ''; if (days.length === 7) return 'Every day';
+    var out = [], i = 0;
+    while (i < days.length) {
+      var j = i; while (j + 1 < days.length && days[j + 1] === days[j] + 1) j++;
+      out.push(j - i >= 2 ? SHORT[days[i]] + '–' + SHORT[days[j]] : days.slice(i, j + 1).map(function (d) { return SHORT[d]; }).join(', ')); i = j + 1;
+    }
+    return out.join(', ');
+  }
+  function hoursText(p) {
+    var a = [dayList(p.days), p.times].filter(Boolean).join(' '), parts = [a, p.hoursNote].filter(Boolean);
+    return parts.length ? parts.join(' · ') : 'Call for hours';
+  }
+  /* Days since "checked" (null if never). stale = never checked, or older than staleDays. */
+  function daysSince(p, today) { return p.checked ? Math.round((new Date(today + 'T12:00:00') - new Date(p.checked + 'T12:00:00')) / 86400000) : null; }
+  function isStale(p, today, staleDays) { var n = daysSince(p, today); return n == null || n > (staleDays || 90); }
+
+  function dayTokens(t, today) {
+    var out = [], i;
+    if (DAY_WORDS[t]) return DAY_WORDS[t];
+    var now = today ? new Date(today + 'T12:00:00').getDay() : -1;
+    if (t === 'today' || t === 'tonight') return now < 0 ? [] : [now];
+    if (t === 'tomorrow') return now < 0 ? [] : [(now + 1) % 7];
+    if (t.length < 2) return out;
+    for (i = 0; i < 7; i++) if (DAYS[i].toLowerCase().indexOf(t) === 0) out.push(i);
+    if (!out.length && t.length >= 3) for (i = 0; i < 7; i++) if (t.indexOf(DAYS[i].toLowerCase().slice(0, 3)) === 0 && DAYS[i].toLowerCase().indexOf(t.slice(0, 4)) === 0) out.push(i); // "thurs", "tues"
+    return out;
+  }
+  /* Does one typed word fit this place? Name/address/notes words, its kind of help (and that kind's keywords), or an open day. */
+  function tokenFits(t, p, cat, today) {
+    if (S.wordPrefix(t, p.name + ' ' + p.address + ' ' + p.notes + ' ' + p.hoursNote)) return true;
+    if (cat && (S.wordPrefix(t, cat.label) || S.wordPrefix(t, cat.words))) return true;
+    var dt = dayTokens(t, today); if (dt.length) return dt.some(function (d) { return p.days.indexOf(d) >= 0; });
+    return false;
+  }
+  function search(data, query, today) {
+    var toks = S.tokens(query), cl = cats(data), byId = {}; cl.forEach(function (c) { byId[c.id] = c; });
+    return data.places.filter(function (p) { return S.matchAll(toks, function (t) { return tokenFits(t, p, byId[p.category], today); }); });
+  }
+  function sortPlaces(list) { return list.slice().sort(function (a, b) { return a.name.toLowerCase() < b.name.toLowerCase() ? -1 : 1; }); }
+  /* -> [{cat, places:[...]}] in category order, empty groups left out */
+  function group(data, places) {
+    return cats(data).map(function (c) { return { cat: c, places: sortPlaces(places.filter(function (p) { return p.category === c.id; })) }; }).filter(function (g) { return g.places.length; });
+  }
+  function csvRows(data) {
+    var byId = {}; cats(data).forEach(function (c) { byId[c.id] = c.label; });
+    var rows = [['Kind of help', 'Name', 'Address', 'Phone', 'Open days', 'Times', 'Hours note', 'Notes', 'Last checked']];
+    group(data, data.places).forEach(function (g) { g.places.forEach(function (p) { rows.push([g.cat.label, p.name, p.address, p.phone, dayList(p.days), p.times, p.hoursNote, p.notes, p.checked]); }); });
+    return rows;
+  }
+  /* First-run start list from an organization's own config (window.DirectorySeed): {places, categories?, settings?}.
+     Returns {data, settings} with the seed's settings copied; the practice-data banner is NOT switched on. */
+  function fromSeed(seed) {
+    seed = seed && typeof seed === 'object' ? seed : {};
+    var st = seed.settings && typeof seed.settings === 'object' ? seed.settings : {}, out = {};
+    Object.keys(st).forEach(function (k) { out[k] = st[k]; });
+    return { data: sanitize({ categories: seed.categories, places: seed.places }), settings: out };
+  }
+  var api = { DAYS: DAYS, SHORT: SHORT, CATEGORIES: CATEGORIES, sanitize: sanitize, fromSeed: fromSeed, blank: blank, tidyPhone: tidyPhone, dayList: dayList, hoursText: hoursText, daysSince: daysSince, isStale: isStale,
+    search: search, group: group, sortPlaces: sortPlaces, csvRows: csvRows, categories: cats };
+  root.Directory = api;
+  if (typeof module !== 'undefined' && module.exports) module.exports = api;
+})(typeof window !== 'undefined' ? window : globalThis);
+
+</script>
+<script>
+/* Made-up practice data (fake places, 555 phone numbers, rough coordinates). Dates are relative to today so the demo never looks old. */
+(function (root) {
+  'use strict';
+  function ago(n) { var d = new Date(); d.setDate(d.getDate() - n); return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2); }
+  function build() {
+    var P = function (category, name, address, phone, days, times, hoursNote, notes, age, lat, lon) { return { category: category, name: name, address: address, phone: phone, days: days, times: times, hoursNote: hoursNote, notes: notes, checked: ago(age), lat: lat, lon: lon }; };
+    return { places: [
+      P('pantry', 'Maple Street Food Pantry', '120 Maple St, Frederick, MD', '3015550101', [2, 4], '10am–1pm', '', 'Bring photo ID. Once a week per household.', 12, 39.4145, -77.4105),
+      P('pantry', 'Riverside Community Cupboard', '48 River Rd, Frederick, MD', '3015550102', [1, 3, 5], '9am–noon', 'Closed holidays', 'Fresh produce on Fridays.', 30, 39.4262, -77.3987),
+      P('pantry', 'Eastgate Neighbors Pantry', '900 Eastgate Ave, Frederick, MD', '3015550103', [6], '9am–11am', 'First and third Saturday only', 'Call first in winter.', 140, 39.4051, -77.3849),
+      P('meals', 'Hope Soup Kitchen', '15 Court Alley, Frederick, MD', '3015550110', [0, 1, 2, 3, 4, 5, 6], '5pm–6:30pm', 'Dinner, no sign-up', '', 9, 39.4139, -77.4118),
+      P('meals', 'Tuesday Table Community Lunch', '77 Church Hill Rd, Frederick, MD', '3015550111', [2], '12pm–1:30pm', '', 'Open to everyone. Kids welcome.', 20, 39.4208, -77.4231),
+      P('meals', 'Sunrise Breakfast Club', '305 Market St, Frederick, MD', '3015550112', [1, 2, 3, 4, 5], '7am–8:30am', '', '', 70, 39.4177, -77.4086),
+      P('rides', 'Care Wheels Medical Rides', '', '3015550120', [1, 2, 3, 4, 5], '8am–4pm', 'Book 3 days ahead', 'Free rides to doctor and clinic visits in the county. Call to book.', 15, 39.4120, -77.4000),
+      P('rides', 'Senior Van Service', '22 Elm Court, Frederick, MD', '3015550121', [2, 4], '9am–2pm', 'Ages 60+', '', 200, 39.4332, -77.4147),
+      P('shelter', 'Harbor House Emergency Shelter', '510 Prospect Blvd, Frederick, MD', '3015550130', [0, 1, 2, 3, 4, 5, 6], 'Open 24 hours', 'Intake at 6pm', 'Families and single adults. Call ahead.', 5, 39.4098, -77.4172),
+      P('shelter', 'Winter Warming Center', '18 Chapel St, Frederick, MD', '3015550131', [0, 1, 2, 3, 4, 5, 6], '7pm–7am', 'November to March', '', 45, 39.4189, -77.4034),
+      P('utilities', 'County Energy Assistance Office', '350 County Plaza, Frederick, MD', '3015550140', [1, 2, 3, 4, 5], '8:30am–4:30pm', 'Appointments preferred', 'Help with electric and heating bills.', 25, 39.4283, -77.4262),
+      P('utilities', 'Neighbors Helping Neighbors Bill Fund', '61 Walnut St, Frederick, MD', '3015550141', [3], '1pm–4pm', 'Walk-ins only', 'Water and gas bills, one time per year.', 100, 39.4032, -77.4201)
+    ] };
+  }
+  root.DirectorySample = { build: build, orgName: 'Welcome Desk', deskNote: 'Hours change. Please call before you go. Ask at the desk if you need help finding something else.', center: [39.4143, -77.4105] };
+})(typeof window !== 'undefined' ? window : globalThis);
+
+</script>
+<script>
+/* Volunteer shifts core: pure logic, no storage, no DOM, no organization details.
+   Works in a browser (global VolunteerShifts) and in Node (module.exports). */
+(function (root) {
+  'use strict';
+  var Csv = root.ToolkitCsv || require(require('path').join(__dirname, '..', '..', 'components', 'csv-export', 'csv.js')); // shared component (browser: loaded first)
+
+  function uid(prefix) {
+    return (prefix || 'id') + '_' + Math.random().toString(36).slice(2, 9) + Date.now().toString(36).slice(-4);
+  }
+  function pad(n) { return (n < 10 ? '0' : '') + n; }
+  function isoDate(d) { return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); }
+  function parseISO(s) { var p = String(s).split('-'); return new Date(+p[0], +p[1] - 1, +p[2]); }
+  function addDays(iso, n) { var d = parseISO(iso); d.setDate(d.getDate() + n); return isoDate(d); }
+  function todayISO() { return isoDate(new Date()); }
+
+  var DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  var MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+  function longDate(iso) { var d = parseISO(iso); return DAYS[d.getDay()] + ' ' + MONTHS[d.getMonth()] + ' ' + d.getDate(); }
+  function shortDate(iso) { var d = parseISO(iso); return DAYS[d.getDay()].slice(0, 3) + ' ' + MONTHS[d.getMonth()].slice(0, 3) + ' ' + d.getDate(); }
+
+  /* "9:00", "9am", "930", "2 pm", "14:30" -> "HH:MM" or '' */
+  function parseTime(s) {
+    s = String(s == null ? '' : s).trim().toLowerCase().replace(/\./g, '');
+    var m = s.match(/^(\d{1,2})(?::?(\d{2}))?\s*(am|pm|a|p)?$/);
+    if (!m) return '';
+    var h = +m[1], min = m[2] ? +m[2] : 0, ap = m[3];
+    if (min > 59) return '';
+    if (ap) { if (h < 1 || h > 12) return ''; if (ap[0] === 'p' && h < 12) h += 12; if (ap[0] === 'a' && h === 12) h = 0; }
+    else if (h > 23) return '';
+    return pad(h) + ':' + pad(min);
+  }
+  function fmtTime(t) {
+    if (!t) return '';
+    var p = t.split(':'), h = +p[0], m = p[1];
+    var ap = h >= 12 ? 'pm' : 'am'; h = h % 12 || 12;
+    return h + (m === '00' ? '' : ':' + m) + ap;
+  }
+  function timeRange(s) { return fmtTime(s.start) + (s.end ? '–' + fmtTime(s.end) : ''); }
+
+  /* Phone numbers: accept messy input, keep a tidy form. Returns {ok, kind, value}. */
+  function cleanContact(raw) {
+    var s = String(raw == null ? '' : raw).trim();
+    if (!s) return { ok: false, kind: '', value: '' };
+    if (s.indexOf('@') >= 0) {
+      var e = s.replace(/\s+/g, '').toLowerCase();
+      return /^[^@\s]+@[^@\s]+\.[^@\s]{2,}$/.test(e) ? { ok: true, kind: 'email', value: e } : { ok: false, kind: 'email', value: s };
+    }
+    var digits = s.replace(/\D/g, '');
+    if (digits.length === 11 && digits[0] === '1') digits = digits.slice(1);
+    if (digits.length === 10) return { ok: true, kind: 'phone', value: digits.slice(0, 3) + '-' + digits.slice(3, 6) + '-' + digits.slice(6) };
+    if (digits.length >= 7 && digits.length <= 15 && /^[\d\s()+.\-]+$/.test(s)) return { ok: true, kind: 'phone', value: s.replace(/\s+/g, ' ') };
+    return { ok: false, kind: 'phone', value: s };
+  }
+  function cleanName(s) { return String(s == null ? '' : s).replace(/\s+/g, ' ').trim().slice(0, 60); }
+
+  /* Build one or many shifts. opts: {title,date,start,end,needed,place,notes, repeat:'none'|'weekly'|'daily', count}
+     Repeats are stored as separate shifts sharing a repeatId so each can be edited or removed alone. */
+  function makeShifts(o) {
+    var errors = [];
+    var title = String(o.title || '').trim();
+    if (!title) errors.push('Give the shift a name, like "Saturday food distribution".');
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(o.date || '')) errors.push('Pick a date.');
+    var start = parseTime(o.start), end = o.end ? parseTime(o.end) : '';
+    if (!start) errors.push('Enter a start time, like 9am.');
+    if (o.end && !end) errors.push('The end time did not look right. Try 11am.');
+    var needed = parseInt(o.needed, 10);
+    if (!(needed >= 1)) errors.push('How many people are needed? Enter 1 or more.');
+    if (errors.length) return { ok: false, errors: errors, shifts: [] };
+    var repeat = o.repeat || 'none';
+    var count = repeat === 'none' ? 1 : Math.max(1, Math.min(60, parseInt(o.count, 10) || 1));
+    var step = repeat === 'daily' ? 1 : 7;
+    var repeatId = count > 1 ? uid('rep') : '';
+    var out = [];
+    for (var i = 0; i < count; i++) {
+      out.push({ id: uid('s'), title: title, date: addDays(o.date, i * step), start: start, end: end, needed: needed,
+        place: String(o.place || '').trim(), notes: String(o.notes || '').trim(), repeatId: repeatId });
+    }
+    return { ok: true, errors: [], shifts: out };
+  }
+
+  function signupsFor(data, shiftId) { return data.signups.filter(function (x) { return x.shiftId === shiftId; }); }
+
+  /* status: 'open' (nobody), 'needs' (some, not enough), 'full' */
+  function shiftStatus(data, shift) {
+    var n = signupsFor(data, shift.id).length, need = shift.needed;
+    return { signed: n, needed: need, missing: Math.max(0, need - n),
+      state: n >= need ? 'full' : (n === 0 ? 'open' : 'needs') };
+  }
+
+  function sortShifts(list) {
+    return list.slice().sort(function (a, b) {
+      return (a.date + (a.start || '')).localeCompare(b.date + (b.start || '')) || a.title.localeCompare(b.title);
+    });
+  }
+
+  function addSignup(data, shiftId, name, contact) {
+    var shift = data.shifts.filter(function (s) { return s.id === shiftId; })[0];
+    if (!shift) return { ok: false, error: 'That shift is no longer on the schedule. Please refresh.' };
+    name = cleanName(name);
+    if (!name) return { ok: false, error: 'Please type your name.' };
+    var c = cleanContact(contact);
+    if (!c.ok) return { ok: false, error: c.value ? 'That phone or email does not look right. Try a phone like 555-123-4567 or an email like you@example.com.' : 'Please add a phone number or an email so we can remind you.' };
+    var dupe = signupsFor(data, shiftId).some(function (x) { return x.contact === c.value || x.name.toLowerCase() === name.toLowerCase(); });
+    if (dupe) return { ok: false, error: 'You are already signed up for this shift.' };
+    if (signupsFor(data, shiftId).length >= shift.needed) return { ok: false, error: 'Sorry, this shift just filled up. Please pick another.' };
+    var s = { id: uid('v'), shiftId: shiftId, name: name, contact: c.value, createdAt: new Date().toISOString() };
+    data.signups.push(s);
+    return { ok: true, signup: s };
+  }
+
+  function removeShift(data, shiftId) {
+    var shift = data.shifts.filter(function (s) { return s.id === shiftId; })[0];
+    var sus = signupsFor(data, shiftId);
+    data.shifts = data.shifts.filter(function (s) { return s.id !== shiftId; });
+    data.signups = data.signups.filter(function (x) { return x.shiftId !== shiftId; });
+    return { shift: shift, signups: sus };
+  }
+  function restoreShift(data, removed) {
+    if (removed.shift) data.shifts.push(removed.shift);
+    removed.signups.forEach(function (x) { data.signups.push(x); });
+  }
+  function removeSignup(data, signupId) {
+    var s = data.signups.filter(function (x) { return x.id === signupId; })[0];
+    data.signups = data.signups.filter(function (x) { return x.id !== signupId; });
+    return s;
+  }
+  /* Data care: delete every shift (and its entries) dated before `beforeISO`. Returns the removed pieces for undo. */
+  function clearOlderThan(data, beforeISO) {
+    var gone = data.shifts.filter(function (s) { return s.date < beforeISO; });
+    var ids = {}; gone.forEach(function (s) { ids[s.id] = 1; });
+    var gs = data.signups.filter(function (x) { return ids[x.shiftId]; });
+    data.shifts = data.shifts.filter(function (s) { return !ids[s.id]; });
+    data.signups = data.signups.filter(function (x) { return !ids[x.shiftId]; });
+    return { shifts: gone, signups: gs };
+  }
+
+  function gaps(data, fromISO, days) {
+    var to = addDays(fromISO, days || 14);
+    return sortShifts(data.shifts.filter(function (s) { return s.date >= fromISO && s.date <= to && shiftStatus(data, s).missing > 0; }));
+  }
+
+  /* Printable roster text for one day (also used as the plain-text fallback). */
+  function rosterRows(data, iso) {
+    return sortShifts(data.shifts.filter(function (s) { return s.date === iso; })).map(function (s) {
+      var st = shiftStatus(data, s);
+      return { shift: s, status: st, people: signupsFor(data, s.id) };
+    });
+  }
+
+  /* Reminder message to paste into a text or email. */
+  function reminderMessage(data, shift, orgName) {
+    var people = signupsFor(data, shift.id);
+    var names = people.map(function (p) { return p.name.split(' ')[0]; });
+    var greet = names.length ? 'Hi ' + names.join(', ') + '!' : 'Hi everyone!';
+    return greet + ' A friendly reminder from ' + (orgName || 'our team') + ': ' + shift.title + ' is ' + longDate(shift.date) +
+      ', ' + timeRange(shift) + (shift.place ? ' at ' + shift.place : '') + '.' +
+      (shift.notes ? ' ' + shift.notes : '') + ' Thank you for helping! Can\'t make it? Please let us know as soon as you can.';
+  }
+  /* Message asking for help on unfilled shifts. */
+  function gapMessage(data, fromISO, orgName, link) {
+    var g = gaps(data, fromISO, 21);
+    if (!g.length) return 'Every upcoming shift is covered. Thank you, volunteers!';
+    var lines = g.map(function (s) { var m = shiftStatus(data, s).missing; return '• ' + shortDate(s.date) + ', ' + timeRange(s) + ' ' + s.title + ' (need ' + m + ' more)'; });
+    return (orgName || 'We') + ' still need help with:\n' + lines.join('\n') + (link ? '\nSign up here: ' + link : '\nSign up with the link we shared.');
+  }
+
+  /* One row per volunteer entry, plus a row for each shift with nobody signed up. */
+  function toRows(data) {
+    var rows = [['Date', 'Start', 'End', 'Shift', 'Place', 'People needed', 'Volunteer', 'Phone or email', 'Signed up on']];
+    sortShifts(data.shifts).forEach(function (s) {
+      var people = signupsFor(data, s.id);
+      var base = [s.date, fmtTime(s.start), fmtTime(s.end), s.title, s.place, s.needed];
+      if (!people.length) rows.push(base.concat(['', '', '']));
+      people.forEach(function (p) { rows.push(base.concat([p.name, p.contact, (p.createdAt || '').slice(0, 10)])); });
+    });
+    return rows;
+  }
+  function toCSV(data) { return Csv.fromRows(toRows(data)); }
+
+  /* Month grid for 'YYYY-MM': array of weeks, each 7 cells {date, inMonth}. Weeks start on Sunday. */
+  function monthGrid(ym) {
+    var p = ym.split('-'), y = +p[0], m = +p[1] - 1, first = new Date(y, m, 1), start = addDays(isoDate(first), -first.getDay()), weeks = [];
+    for (var w = 0; w < 6; w++) {
+      var row = []; for (var i = 0; i < 7; i++) { var iso = addDays(start, w * 7 + i); row.push({ date: iso, inMonth: parseISO(iso).getMonth() === m }); }
+      if (w >= 4 && !row[0].inMonth) break;
+      weeks.push(row);
+    }
+    return weeks;
+  }
+  function monthLabel(ym) { var p = ym.split('-'); return MONTHS[+p[1] - 1] + ' ' + p[0]; }
+  function shiftMonth(ym, n) { var p = ym.split('-'), d = new Date(+p[0], +p[1] - 1 + n, 1); return d.getFullYear() + '-' + pad(d.getMonth() + 1); }
+
+  function emptyData() { return { version: 1, shifts: [], signups: [] }; }
+  /* Validate/repair data read from a backup file or storage. Returns a clean object or null. */
+  function sanitize(d) {
+    if (!d || typeof d !== 'object' || !Array.isArray(d.shifts) || !Array.isArray(d.signups)) return null;
+    var out = emptyData();
+    d.shifts.forEach(function (s) {
+      if (s && s.id && s.title && /^\d{4}-\d{2}-\d{2}$/.test(s.date || '')) out.shifts.push({ id: String(s.id), title: String(s.title), date: s.date,
+        start: s.start || '', end: s.end || '', needed: Math.max(1, parseInt(s.needed, 10) || 1), place: s.place || '', notes: s.notes || '', repeatId: s.repeatId || '' });
+    });
+    var ids = {}; out.shifts.forEach(function (s) { ids[s.id] = 1; });
+    d.signups.forEach(function (x) { if (x && x.id && ids[x.shiftId] && x.name) out.signups.push({ id: String(x.id), shiftId: x.shiftId, name: String(x.name), contact: String(x.contact || ''), createdAt: x.createdAt || '' }); });
+    return out;
+  }
+
+  /* Made-up sample schedule, dated relative to today so it always looks current. */
+  function sampleData(sample) {
+    var base = todayISO(), d = emptyData();
+    sample.shifts.forEach(function (t) {
+      if (typeof t.weekday === 'number') { /* next such weekday, at least 1 day ahead */
+        var off = (t.weekday - parseISO(base).getDay() + 7) % 7; t = Object.assign({}, t, { dayOffset: off || 7 });
+      }
+      var date = addDays(base, t.dayOffset), repeatId = t.repeatWeeks ? uid('rep') : '';
+      for (var w = 0; w < (t.repeatWeeks || 1); w++) {
+        var s = { id: uid('s'), title: t.title, date: addDays(date, w * 7), start: t.start, end: t.end, needed: t.needed, place: t.place || '', notes: t.notes || '', repeatId: repeatId };
+        d.shifts.push(s);
+        if (w === 0) (t.people || []).forEach(function (p) { d.signups.push({ id: uid('v'), shiftId: s.id, name: p[0], contact: p[1], createdAt: new Date().toISOString() }); });
+      }
+    });
+    return d;
+  }
+
+  root.VolunteerShifts = { uid: uid, isoDate: isoDate, parseISO: parseISO, addDays: addDays, todayISO: todayISO, longDate: longDate, shortDate: shortDate,
+    parseTime: parseTime, fmtTime: fmtTime, timeRange: timeRange, cleanContact: cleanContact, cleanName: cleanName, makeShifts: makeShifts,
+    signupsFor: signupsFor, shiftStatus: shiftStatus, sortShifts: sortShifts, addSignup: addSignup, removeShift: removeShift, restoreShift: restoreShift,
+    removeSignup: removeSignup, clearOlderThan: clearOlderThan, gaps: gaps, rosterRows: rosterRows, reminderMessage: reminderMessage,
+    gapMessage: gapMessage, monthGrid: monthGrid, monthLabel: monthLabel, shiftMonth: shiftMonth, toRows: toRows, toCSV: toCSV, emptyData: emptyData, sanitize: sanitize, sampleData: sampleData };
+  if (typeof module !== 'undefined' && module.exports) module.exports = root.VolunteerShifts;
+})(typeof window !== 'undefined' ? window : globalThis);
+
+</script>
+<script>
+/* Made-up sample schedule (test data only). dayOffset = days from today; weekday (0=Sun..6=Sat) = the next such day. */
+window.VOLUNTEER_SAMPLE = {
+  org: 'Riverbend Community Pantry (sample)',
+  shifts: [
+    { title: 'Saturday food distribution', weekday: 6, start: '09:00', end: '11:00', needed: 4, place: 'Pantry hall, side door', notes: 'Wear closed-toe shoes.', repeatWeeks: 4,
+      people: [['Maria Santos', '555-201-3344'], ['Devon Clark', 'devon.clark@example.com'], ['Priya Nair', '555-777-0182']] },
+    { title: 'Sorting donations', dayOffset: 1, start: '17:30', end: '19:00', needed: 3, place: 'Back warehouse', people: [['Tom Becker', '555-410-9921']] },
+    { title: 'Delivery drivers (Saturday)', weekday: 6, start: '11:00', end: '13:00', needed: 2, place: 'Meet at the loading dock', notes: 'Bring a phone for directions.',
+      people: [['Alex Rivera', 'alex.rivera@example.com'], ['Sam Okafor', '555-338-6150']] },
+    { title: 'Kids reading corner', dayOffset: 5, start: '15:00', end: '16:30', needed: 2, place: 'Library annex', people: [] },
+    { title: 'Cleanup crew', dayOffset: 9, start: '12:00', end: '13:30', needed: 5, place: 'Pantry hall', people: [['Jo Winters', '555-902-1177']] },
+    { title: 'Morning setup', dayOffset: 0, start: '08:00', end: '09:00', needed: 2, place: 'Pantry hall', people: [['Maria Santos', '555-201-3344'], ['Tom Becker', '555-410-9921']] }
+  ]
+};
+
+</script>
+<script>
+(function () {
+  'use strict';
+  var PD = ToolkitPracticeData, W = window;
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+  var TOOLS = [
+    { id: 'event-checkin', name: 'Event check-in', fallback: 'Door check-in', file: 'event-checkin.html', banner: 'Practice mode: all names here are made up.', what: 'people',
+      practice: { org: W.CheckinSample.orgName }, opts: { legacy: { org: [W.CheckinSample.orgName] } },
+      make: function () { return W.CheckinSample.build().data; }, empty: function () { return W.Checkin.emptyData(); }, records: function (d) { return d.guests.map(function (g) { return g.name; }); } },
+    { id: 'pantry-tracker', name: 'Pantry tracker', fallback: 'Pantry tracker', file: 'pantry-tracker.html', banner: '', what: 'items',
+      practice: { org: W.PantrySample.org }, opts: { legacy: { org: [W.PantrySample.org] }, flags: { welcome: { key: 'welcomed', practice: false, fresh: true } } }, welcomeKey: 'welcomed', welcomeInverted: true,
+      make: function () { return W.PantrySample.make(); }, empty: function () { return W.Pantry.empty(); }, records: function (d) { return d.items.map(function (i) { return i.name; }); } },
+    { id: 'resource-directory', name: 'Local help list', fallback: 'Local help list', file: 'resource-directory.html', banner: 'Practice mode: every place and phone number here is made up.', what: 'places',
+      practice: { org: W.DirectorySample.orgName, deskNote: W.DirectorySample.deskNote, center: W.DirectorySample.center }, opts: { legacy: { org: [W.DirectorySample.orgName], deskNote: [W.DirectorySample.deskNote], center: [W.DirectorySample.center] } },
+      make: function () { return W.Directory.sanitize(W.DirectorySample.build()); }, empty: function () { return W.Directory.sanitize({ places: [] }); }, records: function (d) { return d.places.map(function (p) { return p.name; }); } },
+    { id: 'volunteer-shifts', name: 'Volunteer shifts', fallback: 'Volunteer sign-up', file: 'volunteer-shifts.html', banner: '', what: 'shifts',
+      practice: { org: W.VOLUNTEER_SAMPLE.org }, opts: { legacy: { org: [W.VOLUNTEER_SAMPLE.org] }, blank: 'Volunteer sign-up', flags: { welcome: null } },
+      make: function () { return W.VolunteerShifts.sampleData(W.VOLUNTEER_SAMPLE); }, empty: function () { return W.VolunteerShifts.emptyData(); }, records: function (d) { return d.shifts.map(function (s) { return s.title; }); } }
+  ];
+  TOOLS.forEach(function (t) { t.settings = {}; PD.seed(t.settings, t.practice, t.opts); t.data = t.make(); t.before = pane(t, 'Before: practice data'); t.undo = null; });
+  function show(v) { if (v == null || v === '') return '(empty)'; return typeof v === 'object' ? JSON.stringify(v) : String(v); }
+  function pane(t, label) {
+    var s = t.settings, recs = t.records(t.data), wk = t.opts.flags && t.opts.flags.welcome ? t.opts.flags.welcome.key : 'welcome', hasWelcome = t.opts.flags && t.opts.flags.welcome === null ? null : (t.welcomeInverted ? !s[wk] : !!s[wk]);
+    var h = '<h3>' + esc(label) + '</h3><div class="title">' + esc(s.org || t.fallback) + '</div>';
+    if (s.sample && t.banner) h += '<div class="banner">' + esc(t.banner) + '</div>';
+    if (hasWelcome) h += '<div class="welcome">Welcome card: showing</div>';
+    h += '<dl>' + Object.keys(t.practice).map(function (k) { return '<dt>' + esc(k) + '</dt><dd class="' + (PD.leftovers(s, [t.practice[k]]).indexOf(k) >= 0 ? 'gone' : 'ok') + '">' + esc(show(s[k])) + '</dd>'; }).join('') + '</dl>';
+    h += '<b>' + recs.length + ' ' + t.what + '</b>' + (recs.length ? '<ul>' + recs.slice(0, 4).map(function (n) { return '<li>' + esc(n) + '</li>'; }).join('') + (recs.length > 4 ? '<li>…and ' + (recs.length - 4) + ' more</li>' : '') + '</ul>' : '<p class="ok">Nothing made-up is left.</p>');
+    return h;
+  }
+  var root = document.getElementById('tools');
+  function draw() {
+    root.innerHTML = TOOLS.map(function (t) {
+      var done = !!t.undo;
+      return '<section class="tool" aria-labelledby="h-' + t.id + '"><h2 id="h-' + t.id + '">' + esc(t.name) + '</h2><div class="cols">' +
+        '<div class="pane" aria-label="Before">' + t.before + '</div><div class="pane" aria-live="polite" aria-label="After">' +
+        (done ? pane(t, 'After: Start fresh') : '<h3>After: Start fresh</h3><p class="wait">Press “Start fresh” to see the result.</p>') + '</div></div>' +
+        '<div class="row"><button class="primary" type="button" data-act="fresh" data-id="' + t.id + '"' + (done ? ' disabled' : '') + '>Start fresh</button>' +
+        '<button type="button" data-act="undo" data-id="' + t.id + '"' + (done ? '' : ' disabled') + '>Undo</button>' +
+        '<a class="btn" href="' + t.file + '">Open the real tool</a></div></section>';
+    }).join('');
+  }
+  root.addEventListener('click', function (e) {
+    var b = e.target.closest('button[data-act]'); if (!b || b.disabled) return;
+    var t = TOOLS.filter(function (x) { return x.id === b.dataset.id; })[0], f = b.dataset.act === 'fresh';
+    if (f) { var r = PD.startFresh({ data: t.data, settings: t.settings }, Object.assign({ empty: t.empty }, t.opts)); t.data = r.data; t.undo = r.undo; }
+    else { t.data = PD.restore(t.undo, t.settings).data; t.undo = null; }
+    draw(); var again = document.querySelector('[data-id="' + t.id + '"][data-act="' + (f ? 'undo' : 'fresh') + '"]'); if (again) again.focus();
+  });
+  var light = false; try { light = localStorage.getItem('demo.theme') === 'light'; } catch (x) {}
+  function theme() { document.documentElement.classList.toggle('light', light); document.querySelector('meta[name=color-scheme]').content = light ? 'light' : 'dark'; }
+  document.getElementById('theme').onclick = function () { light = !light; theme(); try { localStorage.setItem('demo.theme', light ? 'light' : 'dark'); } catch (x) {} };
+  theme(); draw();
+})();
+</script></body></html>
