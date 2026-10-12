@@ -2,7 +2,21 @@
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="color-scheme" content="dark"><meta name="theme-color" content="#12161c"><title>Door check-in</title>
 <style>html{background:#12161c}</style>
-<style>:root{--bg:#12161c;--card:#1b222b;--line:#4a5663;--text:#f2f5f8;--muted:#b4bfcb;--accent:#5fd18a;--accentText:#08210f;--warn:#ffc857;--bad:#ff8a80;--field:#0e1217;--blue:#2f6fd0}
+<style>/* Print layout. Mark anything that should not print with class "noprint" (or "no-print"); anything only for paper with "print-only".
+   Screen colors are reset to black on white so printing works from dark mode too. */
+.print-only{display:none}
+@media print{
+  :root,:root.light{--bg:#fff;--card:#fff;--panel:#fff;--panel2:#fff;--field:#fff;--text:#000;--muted:#333;--line:#888}
+  html,body{background:#fff!important;color:#000!important;font-size:12pt}
+  .noprint,.no-print,nav.tabs,.toast,#toast,.modal,button{display:none!important}
+  .print-only{display:block!important}
+  .card,.res,tr{break-inside:avoid;box-shadow:none}
+  .print-break{break-before:page}
+  .print-page{break-after:page;page-break-after:always}.print-page:last-child{break-after:auto;page-break-after:auto}
+  body.printing-section .print-section:not(.print-this){display:none!important}
+  table{border-collapse:collapse}th,td{border:1px solid #000;padding:6px;text-align:left;vertical-align:top}
+}
+</style><style>:root{--bg:#12161c;--card:#1b222b;--line:#4a5663;--text:#f2f5f8;--muted:#b4bfcb;--accent:#5fd18a;--accentText:#08210f;--warn:#ffc857;--bad:#ff8a80;--field:#0e1217;--blue:#2f6fd0}
 :root.light{--bg:#f6f7f4;--card:#fff;--line:#7d8893;--text:#14181d;--muted:#46505b;--accent:#1f7a45;--accentText:#fff;--warn:#8a5a00;--bad:#b3261e;--field:#fff;--blue:#1c55b0}
 *{box-sizing:border-box}
 html,body{margin:0;background:var(--bg);color:var(--text);font:18px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
@@ -51,10 +65,229 @@ input.search{font-size:1.4rem;min-height:62px;border-color:var(--accent)}
 ol.steps{padding-left:22px}ol.steps li{margin:6px 0}
 table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:8px;border-bottom:1px solid var(--line)}th{color:var(--muted);font-size:.9rem}
 @media(max-width:560px){.row2{grid-template-columns:1fr}.count .num{font-size:2.5rem}}
-@media print{nav.tabs,.noprint,.toast{display:none!important}:root,:root.light{--bg:#fff;--card:#fff;--text:#000;--muted:#333;--line:#888}}
 </style></head>
 <body><div id="app"></div><noscript>This page needs JavaScript turned on to work.</noscript>
 <script>
+/* Dark/light theme toggle. Dark is the default; light adds class "light" to <html>.
+   The app keeps the choice in its own settings object ({theme: 'dark'|'light'}) and saves it however it likes.
+   API: ToolkitTheme.apply(theme)  ToolkitTheme.toggle(settings) -> new theme (also applies it; caller saves settings)
+        ToolkitTheme.button(theme) -> html for the button, clicks are handled by the app on [data-act=theme] */
+(function (root) {
+  'use strict';
+  function apply(theme) {
+    var light = theme === 'light', d = root.document;
+    d.documentElement.classList.toggle('light', light);
+    var m = d.querySelector('meta[name=color-scheme]'); if (m) m.setAttribute('content', light ? 'light' : 'dark');
+    var tc = d.querySelector('meta[name=theme-color]'); if (tc) tc.setAttribute('content', light ? '#f6f7f4' : '#12161c');
+  }
+  function toggle(settings) { settings.theme = settings.theme === 'light' ? 'dark' : 'light'; apply(settings.theme); return settings.theme; }
+  function button(theme) {
+    return '<button class="small" type="button" data-act="theme" aria-label="Switch between dark and light colors">' + (theme === 'light' ? '🌙 Dark' : '☀️ Light') + '</button>';
+  }
+  var api = { apply: apply, toggle: toggle, button: button };
+  root.ToolkitTheme = api;
+  if (typeof module !== 'undefined' && module.exports) module.exports = api;
+})(typeof window !== 'undefined' ? window : globalThis);
+
+</script><script>
+/* Saves text as a file in the browser's Downloads folder (no server). ToolkitDownload.save(filename, text, mimeType). */
+(function (root) {
+  'use strict';
+  function save(name, text, type) {
+    var d = root.document, a = d.createElement('a');
+    a.href = URL.createObjectURL(new Blob([text], { type: type || 'text/plain' })); a.download = name; d.body.appendChild(a); a.click();
+    setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 500);
+  }
+  root.ToolkitDownload = { save: save };
+  if (typeof module !== 'undefined' && module.exports) module.exports = root.ToolkitDownload;
+})(typeof window !== 'undefined' ? window : globalThis);
+
+</script><script>
+/* CSV export for spreadsheets. Works in the browser and in Node (core logic can require it).
+   cell(v)  - one safe cell: quotes when needed, and defuses leading = + - @ so spreadsheets never run it as a formula
+   fromRows(rows) - array of arrays -> CSV text with Windows line breaks
+   parse(text) - the reverse: CSV text -> array of arrays. Handles quotes, line breaks inside cells, a byte-order mark, and , ; or tab separators.
+     Undoes the formula guard (a leading ' before = + - @) so a file this tool exported reads back unchanged.
+   download(filename, rows) - saves the file with a byte-order mark so Excel shows accents correctly (needs file-download) */
+(function (root) {
+  'use strict';
+  function cell(v) { v = String(v == null ? '' : v); if (/^[=+\-@]/.test(v)) v = "'" + v; return /[",\n\r]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; }
+  function fromRows(rows) { return rows.map(function (r) { return r.map(cell).join(','); }).join('\r\n'); }
+  function download(name, rows) { root.ToolkitDownload.save(name, '﻿' + fromRows(rows), 'text/csv'); }
+  function parse(text) {
+    text = String(text == null ? '' : text).replace(/^\uFEFF/, '');
+    var first = text.split(/\r?\n/, 1)[0], best = ',', bn = -1;
+    [',', ';', '\t'].forEach(function (d) { var n = first.split(d).length; if (n > 1 && n > bn) { best = d; bn = n; } });
+    var rows = [], row = [], c = '', q = false, i, ch;
+    for (i = 0; i < text.length; i++) {
+      ch = text[i];
+      if (q) { if (ch === '"') { if (text[i + 1] === '"') { c += '"'; i++; } else q = false; } else c += ch; }
+      else if (ch === '"' && c === '') q = true;
+      else if (ch === best) { row.push(c); c = ''; }
+      else if (ch === '\n' || ch === '\r') { if (ch === '\r' && text[i + 1] === '\n') i++; row.push(c); c = ''; rows.push(row); row = []; }
+      else c += ch;
+    }
+    if (c !== '' || row.length) { row.push(c); rows.push(row); }
+    return rows.map(function (r) { return r.map(function (v) { return /^'[=+\-@]/.test(v) ? v.slice(1) : v; }); })
+      .filter(function (r) { return r.length > 1 || (r.length === 1 && r[0].trim() !== ''); });
+  }
+  var api = { cell: cell, fromRows: fromRows, parse: parse, download: download };
+  root.ToolkitCsv = api;
+  if (typeof module !== 'undefined' && module.exports) module.exports = api;
+})(typeof window !== 'undefined' ? window : globalThis);
+
+</script><script>
+/* One-click backup and restore as a small .json file (needs file-download).
+   save({app, filename, data, settings}) - downloads {app, savedAt, settings, data}
+   read(file, cb) - cb(null, {data, settings, app}) or cb(error). Also accepts older backups (bare data, or {data, org}).
+   The app then validates `data` with its own sanitize(), asks "Replace what you have?" and offers undo.
+   fileInput(id) - html for the hidden file chooser; pick(id) opens it. */
+(function (root) {
+  'use strict';
+  function save(o) {
+    root.ToolkitDownload.save(o.filename, JSON.stringify({ app: o.app || '', savedAt: new Date().toISOString(), settings: o.settings || {}, data: o.data }, null, 1), 'application/json');
+  }
+  function parse(text) {
+    var j = JSON.parse(text); if (!j || typeof j !== 'object') throw new Error('not a backup');
+    var settings = j.settings && typeof j.settings === 'object' ? j.settings : (j.org ? { org: j.org } : {});
+    return { data: j.data || j, settings: settings, app: j.app || '' };
+  }
+  function read(file, cb) {
+    var fr = new FileReader();
+    fr.onload = function () { var r; try { r = parse(fr.result); } catch (e) { return cb(e); } cb(null, r); };
+    fr.onerror = function () { cb(new Error('could not read file')); };
+    fr.readAsText(file);
+  }
+  function fileInput(id) { return '<input id="' + id + '" type="file" accept=".json,application/json" class="sr" tabindex="-1" aria-label="Choose backup file">'; }
+  function pick(id) { root.document.getElementById(id).click(); }
+  var api = { save: save, parse: parse, read: read, fileInput: fileInput, pick: pick };
+  root.ToolkitBackup = api;
+  if (typeof module !== 'undefined' && module.exports) module.exports = api;
+})(typeof window !== 'undefined' ? window : globalThis);
+
+</script><script>
+/* ToolkitPrint.print(title) opens the browser print window; the title becomes the suggested file name when saving as PDF. */
+(function (root) {
+  'use strict';
+  function print(title) {
+    var d = root.document, old = d.title; if (title) d.title = title;
+    try { root.print(); } finally { d.title = old; }
+  }
+  /* Print just one part of the page: mark each part class="print-section" and give the one to print data-section="name". */
+  function printSection(title, name) {
+    var d = root.document, els = d.querySelectorAll('.print-section'), i;
+    for (i = 0; i < els.length; i++) if (els[i].getAttribute('data-section') === name) els[i].classList.add('print-this');
+    d.body.classList.add('printing-section');
+    try { print(title); } finally {
+      d.body.classList.remove('printing-section');
+      for (i = 0; i < els.length; i++) els[i].classList.remove('print-this');
+    }
+  }
+  root.ToolkitPrint = { print: print, printSection: printSection };
+  if (typeof module !== 'undefined' && module.exports) module.exports = root.ToolkitPrint;
+})(typeof window !== 'undefined' ? window : globalThis);
+
+</script><script>
+/* Guided first-run welcome: a short "do these 2-3 things first" panel.
+   ToolkitWelcome.html({title, intro, steps:[...], doneLabel, doneAct, card:true}) -> html string.
+   steps/intro are trusted html written by the app author (use <b> for the thing to tap). The done button carries data-act=doneAct
+   (default "welcomeOff"); the app hides the welcome, remembers that in its settings, and offers "Show the welcome again" somewhere under More. */
+(function (root) {
+  'use strict';
+  function html(o) {
+    var inner = '<h2' + (o.card === false ? '' : ' style="margin-top:0"') + '>' + (o.title || 'Welcome!') + '</h2>' + (o.intro ? '<p>' + o.intro + '</p>' : '') +
+      '<ol class="steps">' + (o.steps || []).map(function (s) { return '<li>' + s + '</li>'; }).join('') + '</ol>' +
+      '<button class="primary" type="button" data-act="' + (o.doneAct || 'welcomeOff') + '">' + (o.doneLabel || 'Got it, let’s start') + '</button>';
+    return o.card === false ? inner : '<div class="card" role="region" aria-label="Welcome">' + inner + '</div>';
+  }
+  root.ToolkitWelcome = { html: html };
+  if (typeof module !== 'undefined' && module.exports) module.exports = root.ToolkitWelcome;
+})(typeof window !== 'undefined' ? window : globalThis);
+
+</script><script>
+/* Practice data helper: remembers which settings a tool filled with made-up values, and clears them on "start fresh".
+   Plain script (global ToolkitPracticeData) or require(). No storage of its own: it works on the tool's settings object.
+   Settings are cleared only when they still hold the practice value, so a name the charity typed is never touched. */
+(function (root, factory) {
+  if (typeof module === 'object' && module.exports) module.exports = factory(); else root.ToolkitPracticeData = factory();
+})(typeof self !== 'undefined' ? self : this, function () {
+  'use strict';
+  var MARK = 'practiceSet'; // settings.practiceSet = { key: practiceValue } for every setting seed() filled
+  var DEFAULT_FLAGS = { sample: { key: 'sample', practice: true, fresh: false }, welcome: { key: 'welcome', practice: true, fresh: false } };
+
+  function flags(opts) {
+    var f = (opts && opts.flags) || {}, o = {};
+    ['sample', 'welcome'].forEach(function (n) { o[n] = f[n] === null ? null : Object.assign({}, DEFAULT_FLAGS[n], f[n] || {}); });
+    return o;
+  }
+  function same(a, b) { return JSON.stringify(a) === JSON.stringify(b); }
+
+  /* Fill settings with practice values and remember them. values: {org: 'Example Pantry', ...}. Sets the practice banner and welcome flags. */
+  function seed(settings, values, opts) {
+    var f = flags(opts), rec = {};
+    Object.keys(values || {}).forEach(function (k) { settings[k] = values[k]; rec[k] = values[k]; });
+    settings[MARK] = Object.assign(settings[MARK] || {}, rec);
+    if (f.sample) settings[f.sample.key] = f.sample.practice;
+    if (f.welcome) settings[f.welcome.key] = f.welcome.practice;
+    return settings;
+  }
+
+  /* Which setting keys still hold a practice value? Checks what seed() recorded, plus opts.legacy ({key: [values]}) for data saved
+     before this component existed. */
+  function practiceKeys(settings, opts) {
+    var rec = settings[MARK] || {}, legacy = (opts && opts.legacy) || {}, out = [];
+    Object.keys(rec).concat(Object.keys(legacy)).forEach(function (k) {
+      if (out.indexOf(k) >= 0 || settings[k] === undefined) return;
+      var cands = [rec[k]].concat(legacy[k] || []).filter(function (v) { return v !== undefined; });
+      if (cands.some(function (v) { return same(v, settings[k]); })) out.push(k);
+    });
+    return out;
+  }
+
+  /* Clear every still-practice setting (to opts.blank, default ''), the banner and welcome flags, and the record of what was seeded.
+     Returns {cleared: [keys], kept: [keys the charity changed]}. */
+  function clearSettings(settings, opts) {
+    var f = flags(opts), blank = opts && 'blank' in opts ? opts.blank : '', rec = settings[MARK] || {}, legacy = (opts && opts.legacy) || {};
+    var cleared = practiceKeys(settings, opts), kept = Object.keys(rec).concat(Object.keys(legacy)).filter(function (k, i, a) {
+      return a.indexOf(k) === i && cleared.indexOf(k) < 0 && settings[k] !== undefined && settings[k] !== blank;
+    });
+    cleared.forEach(function (k) { settings[k] = blank; });
+    delete settings[MARK];
+    if (f.sample) settings[f.sample.key] = f.sample.fresh;
+    if (f.welcome) settings[f.welcome.key] = f.welcome.fresh;
+    return { cleared: cleared, kept: kept };
+  }
+
+  /* One undoable step. state = {data, settings}; opts.empty = function returning empty data (or the empty data itself);
+     opts.onSettings(settings) may reset other things such as a current-event id. Mutates settings in place; returns
+     {data, cleared, kept, undo} where undo is a string for restore(). */
+  function startFresh(state, opts) {
+    var undo = snapshot(state), r = clearSettings(state.settings, opts), empty = opts && opts.empty;
+    if (opts && opts.onSettings) opts.onSettings(state.settings);
+    return { data: typeof empty === 'function' ? empty() : empty, cleared: r.cleared, kept: r.kept, undo: undo };
+  }
+
+  /* Snapshot of data AND settings, so one Undo brings back both. */
+  function snapshot(state) { return JSON.stringify({ practiceData: 1, data: state.data, settings: state.settings }); }
+  /* Put settings back in place (same object) and return the data to re-sanitize. Also accepts an old data-only snapshot. */
+  function restore(str, settings) {
+    var o = JSON.parse(str);
+    if (!o || o.practiceData !== 1) return { data: o };
+    Object.keys(settings).forEach(function (k) { delete settings[k]; });
+    Object.assign(settings, o.settings);
+    return { data: o.data };
+  }
+
+  /* True if any text field of the tool's settings still equals a known practice value (used by tests). */
+  function leftovers(settings, practiceValues) {
+    var vals = Array.isArray(practiceValues) ? practiceValues : Object.keys(practiceValues).map(function (k) { return practiceValues[k]; });
+    return Object.keys(settings).filter(function (k) { return k !== MARK && vals.some(function (v) { return same(v, settings[k]); }); });
+  }
+
+  return { MARK: MARK, seed: seed, practiceKeys: practiceKeys, clearSettings: clearSettings, startFresh: startFresh, snapshot: snapshot, restore: restore, leftovers: leftovers };
+});
+
+</script><script>
 /* event-checkin core: pure logic, no DOM, no storage. Works in browsers and Node.
    Data: {version, guests:[{id,name,familyId|null,createdAt}], events:[{id,name,date}],
           checkins:[{id,eventId,guestId,at}]}
@@ -272,29 +505,33 @@ table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:8px;bord
 /* Door check-in UI. Plain JS; talks to Checkin (core) and CheckinStorage (adapter). */
 (function () {
   'use strict';
-  var C = window.Checkin, S = window.CheckinStorage, SAMPLE = window.CheckinSample;
+  var C = window.Checkin, S = window.CheckinStorage, SAMPLE = window.CheckinSample, PD = window.ToolkitPracticeData;
   var settings = S.loadSettings(), data = S.load(), screen = 'checkin', query = '', toastTimer = null, addForm = null, storageOk = true;
   var $app = document.getElementById('app');
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
 
   if (!data) { // first ever open: start with practice data so there is something to try
-    var b = SAMPLE.build(); data = b.data; settings.currentEventId = b.currentEventId; settings.org = SAMPLE.orgName; settings.sample = true; settings.welcome = true;
+    seedPractice();
     S.saveSettings(settings); S.save(data);
   }
-  if (settings.theme === 'light') document.documentElement.classList.add('light');
+  ToolkitTheme.apply(settings.theme);
+  function seedPractice() { var b = SAMPLE.build(); data = b.data; settings.currentEventId = b.currentEventId; PD.seed(settings, { org: SAMPLE.orgName }); }
+  var PRACTICE = { legacy: { org: [SAMPLE.orgName] }, onSettings: function (st) { st.currentEventId = null; } };
+  if (!settings.sample && PD.practiceKeys(settings, PRACTICE).length) { PD.clearSettings(settings, PRACTICE); S.saveSettings(settings); } // practice name left by an older "Start fresh"
+
   function currentEvent() {
     var e = C.event(data, settings.currentEventId);
     if (!e) { e = C.eventsSorted(data)[0] || null; settings.currentEventId = e ? e.id : null; }
     return e;
   }
   function save() { storageOk = S.save(data); S.saveSettings(settings); }
-  function snapshot() { return JSON.stringify(data); }
+  function snapshot() { return PD.snapshot({ data: data, settings: settings }); }
   function toast(msg, undoSnap) {
     var old = document.getElementById('toast'); if (old) old.remove(); clearTimeout(toastTimer);
     var t = document.createElement('div'); t.id = 'toast'; t.className = 'toast'; t.setAttribute('role', 'status');
     t.innerHTML = '<span>' + esc(msg) + '</span>' + (undoSnap ? '<button type="button">Undo</button>' : '');
     document.body.appendChild(t);
-    if (undoSnap) t.querySelector('button').onclick = function () { data = C.sanitize(JSON.parse(undoSnap)); save(); t.remove(); render(); };
+    if (undoSnap) t.querySelector('button').onclick = function () { data = C.sanitize(PD.restore(undoSnap, settings).data); save(); t.remove(); render(); };
     toastTimer = setTimeout(function () { t.remove(); }, 8000);
   }
   function go(s) { screen = s; if (s !== 'checkin') addForm = null; render(); window.scrollTo(0, 0); }
@@ -302,7 +539,7 @@ table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:8px;bord
   function header() {
     return '<header class="top"><h1>' + esc(settings.org || 'Door check-in') + '</h1>' +
       '<span class="muted small" id="net" aria-live="polite"></span>' +
-      '<button class="small" type="button" data-act="theme" aria-label="Switch between dark and light colors">' + (settings.theme === 'light' ? '🌙 Dark' : '☀️ Light') + '</button></header>' +
+      ToolkitTheme.button(settings.theme) + '</header>' +
       (settings.sample ? '<div class="sample">Practice mode: all names here are made up. Go to More → “Start fresh” when you are ready for real use.</div>' : '') +
       (storageOk ? '' : '<div class="alert"><b>This browser is not saving.</b> Your check-ins will be lost if you close this page. Open the page in a normal (not private) window.</div>');
   }
@@ -312,11 +549,10 @@ table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:8px;bord
   }
   function welcome() {
     if (!settings.welcome) return '';
-    return '<div class="card" role="region" aria-label="Welcome"><h2 style="margin-top:0">Welcome! Three things to try</h2><ol class="steps">' +
-      '<li>Type <b>“gra”</b> in the box below and tap <b>Check in</b> next to Grace Bellamy. Her whole family can go in with one tap.</li>' +
-      '<li>Type a name that is not on the list, then tap <b>Add</b>. It takes a few seconds.</li>' +
-      '<li>Watch the big <b>headcount</b> number go up. Everything is saved on this device, even with no Wi-Fi.</li></ol>' +
-      '<button class="primary" type="button" data-act="welcomeOff">Got it, let’s start</button></div>';
+    return ToolkitWelcome.html({ title: 'Welcome! Three things to try', steps: [
+      'Type <b>“gra”</b> in the box below and tap <b>Check in</b> next to Grace Bellamy. Her whole family can go in with one tap.',
+      'Type a name that is not on the list, then tap <b>Add</b>. It takes a few seconds.',
+      'Watch the big <b>headcount</b> number go up. Everything is saved on this device, even with no Wi-Fi.'] });
   }
 
   function checkinScreen() {
@@ -367,6 +603,7 @@ table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:8px;bord
     var ev = currentEvent(); if (!ev) return '<p>No event yet.</p>';
     var list = C.attendees(data, ev.id), h = C.headcount(data, ev.id);
     return '<h2>' + esc(ev.name) + ' · ' + esc(C.fmtDate(ev.date)) + '</h2><div class="card count"><span class="num">' + h.total + '</span><span>checked in' + (h.firstTime ? ' <span class="muted">(' + h.firstTime + ' first-time)</span>' : '') + '</span></div>' +
+      (list.length ? '<div class="actions noprint"><button type="button" data-act="printHere">Print this list</button><button type="button" data-act="hereCsv">Download for spreadsheet</button></div>' : '') +
       (list.length ? list.map(function (a) {
         return '<div class="res here"><div class="who"><b>' + esc(a.guest.name) + '</b><div class="muted small">' + (a.at ? new Date(a.at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : '') + '</div></div>' +
           '<button class="small" type="button" data-act="undo1" data-id="' + a.guest.id + '" aria-label="Undo check-in for ' + esc(a.guest.name) + '">Undo</button></div>';
@@ -391,7 +628,7 @@ table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:8px;bord
     return '<h2>Settings</h2><div class="card"><label for="org">Name shown at the top</label><input id="org" value="' + esc(settings.org || '') + '" placeholder="Your church or group">' +
       '<p class="muted small">Saved as you type.</p></div>' +
       '<h2>Keep your records safe</h2><div class="card"><div class="actions" style="margin-top:0"><button class="primary" type="button" data-act="backup">Save a backup file</button>' +
-      '<button type="button" data-act="restore">Restore from a backup</button></div><input id="file" type="file" accept=".json,application/json" class="sr" tabindex="-1" aria-label="Choose backup file">' +
+      '<button type="button" data-act="restore">Restore from a backup</button></div>' + ToolkitBackup.fileInput('file') + '' +
       '<p class="muted small">Everything is stored on this device only. A backup is a small file you can keep on a USB stick or email to yourself.</p></div>' +
       '<h2>People on your list</h2><div class="card"><p>' + data.guests.length + ' people. To fix a typo or remove someone:</p><label for="pq">Find a person</label><input id="pq" type="search" autocomplete="off" placeholder="Start typing a name"><div id="plist"></div></div>' +
       '<h2>More options</h2><div class="card"><div class="actions" style="margin-top:0"><button type="button" data-act="sampleReset">Start over with practice data</button><button class="danger" type="button" data-act="fresh">Start fresh (erase everything)</button></div>' +
@@ -456,7 +693,12 @@ table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:8px;bord
     var b = e.target.closest('[data-act]'); if (!b) return; var act = b.dataset.act, id = b.dataset.id, ev = currentEvent(), snap;
     switch (act) {
       case 'tab': go(b.dataset.v); break;
-      case 'theme': settings.theme = settings.theme === 'light' ? 'dark' : 'light'; document.documentElement.classList.toggle('light', settings.theme === 'light'); save(); render(); break;
+      case 'theme': ToolkitTheme.toggle(settings); save(); render(); break;
+      case 'printHere': ToolkitPrint.print((ev ? ev.name + ' ' + ev.date : 'Who is here')); break;
+      case 'hereCsv':
+        ToolkitCsv.download('checkin-' + ev.date + '.csv', [['Event', 'Date', 'Name', 'Checked in at']].concat(C.attendees(data, ev.id).map(function (a) {
+          return [ev.name, ev.date, a.guest.name, a.at ? new Date(a.at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : ''];
+        }))); toast('Spreadsheet file saved to your Downloads folder.'); break;
       case 'welcomeOff': settings.welcome = false; save(); render(); break;
       case 'in1': checkInIds([id]); break;
       case 'inFam': checkInIds(C.familyMembers(data, C.guest(data, id)).map(function (g) { return g.id; })); break;
@@ -478,10 +720,8 @@ table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:8px;bord
         var de = C.event(data, id), n = C.headcount(data, id).total;
         if (confirm('Delete “' + de.name + ' · ' + C.fmtDate(de.date) + '” and its ' + n + ' check-ins? You can undo right after.')) { snap = snapshot(); C.removeEvent(data, id); save(); render(); toast('Event deleted.', snap); }
         break;
-      case 'backup':
-        var blob = new Blob([JSON.stringify({ data: data, settings: { org: settings.org } }, null, 1)], { type: 'application/json' }), a = document.createElement('a');
-        a.href = URL.createObjectURL(blob); a.download = 'checkin-backup-' + C.today() + '.json'; document.body.appendChild(a); a.click(); a.remove(); toast('Backup saved to your Downloads folder.'); break;
-      case 'restore': document.getElementById('file').click(); break;
+      case 'backup': ToolkitBackup.save({ app: 'event-checkin', filename: 'checkin-backup-' + C.today() + '.json', data: data, settings: { org: settings.org } }); toast('Backup saved to your Downloads folder.'); break;
+      case 'restore': ToolkitBackup.pick('file'); break;
       case 'rename':
         var g = C.guest(data, id), nn = prompt('Correct the name:', g.name);
         if (nn !== null) { snap = snapshot(); if (C.renameGuest(data, id, nn)) { save(); paintPeople(); toast('Name updated.', snap); } } break;
@@ -489,21 +729,22 @@ table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:8px;bord
         var dg = C.guest(data, id);
         if (confirm('Remove ' + dg.name + ' from your list, including their past check-ins?')) { snap = snapshot(); C.removeGuest(data, id); save(); render(); toast(dg.name + ' removed.', snap); } break;
       case 'sampleReset':
-        if (confirm('Replace everything with practice data? Your current records will be replaced.')) { snap = snapshot(); var sb = SAMPLE.build(); data = sb.data; settings.currentEventId = sb.currentEventId; settings.org = SAMPLE.orgName; settings.sample = true; settings.welcome = true; save(); go('checkin'); toast('Practice data loaded.', snap); } break;
+        if (confirm('Replace everything with practice data? Your current records will be replaced.')) { snap = snapshot(); seedPractice(); save(); go('checkin'); toast('Practice data loaded.', snap); } break;
       case 'fresh':
-        if (confirm('Erase all people, events and check-ins? Save a backup first if you may need them.')) { snap = snapshot(); data = C.emptyData(); settings.currentEventId = null; settings.sample = false; settings.welcome = false; save(); go('events'); toast('Everything erased. Start your first event.', snap); } break;
+        if (confirm('Erase all people, events and check-ins? Save a backup first if you may need them.')) { var fr = PD.startFresh({ data: data, settings: settings }, Object.assign({ empty: C.emptyData }, PRACTICE)); data = fr.data; save(); go('events'); toast('Everything erased, including the practice name. Start your first event.', fr.undo); } break;
     }
   });
   document.addEventListener('change', function (e) {
     if (e.target.id !== 'file' || !e.target.files[0]) return;
-    var fr = new FileReader(); fr.onload = function () {
+    ToolkitBackup.read(e.target.files[0], function (err, bk) {
       try {
-        var j = JSON.parse(fr.result), d = C.sanitize(j.data || j);
+        if (err) throw err;
+        var d = C.sanitize(bk.data);
         if (!d.guests.length && !d.events.length) throw new Error('empty');
         if (!confirm('Replace your current records with this backup (' + d.guests.length + ' people, ' + d.events.length + ' events)?')) return;
-        var snap = snapshot(); data = d; settings.sample = false; settings.currentEventId = null; if (j.settings && j.settings.org) settings.org = j.settings.org; save(); go('checkin'); toast('Backup restored.', snap);
-      } catch (err) { toast('That file does not look like a check-in backup. Please choose a file saved with “Save a backup file”.'); }
-    }; fr.readAsText(e.target.files[0]);
+        var snap = snapshot(); data = d; settings.sample = false; settings.currentEventId = null; if (bk.settings.org) settings.org = bk.settings.org; save(); go('checkin'); toast('Backup restored.', snap);
+      } catch (x) { toast('That file does not look like a check-in backup. Please choose a file saved with “Save a backup file”.'); }
+    });
   });
 
   render();

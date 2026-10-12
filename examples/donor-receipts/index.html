@@ -114,13 +114,32 @@ details{margin:10px 0}summary{cursor:pointer;min-height:44px;padding:10px 0;font
 /* CSV export for spreadsheets. Works in the browser and in Node (core logic can require it).
    cell(v)  - one safe cell: quotes when needed, and defuses leading = + - @ so spreadsheets never run it as a formula
    fromRows(rows) - array of arrays -> CSV text with Windows line breaks
+   parse(text) - the reverse: CSV text -> array of arrays. Handles quotes, line breaks inside cells, a byte-order mark, and , ; or tab separators.
+     Undoes the formula guard (a leading ' before = + - @) so a file this tool exported reads back unchanged.
    download(filename, rows) - saves the file with a byte-order mark so Excel shows accents correctly (needs file-download) */
 (function (root) {
   'use strict';
   function cell(v) { v = String(v == null ? '' : v); if (/^[=+\-@]/.test(v)) v = "'" + v; return /[",\n\r]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; }
   function fromRows(rows) { return rows.map(function (r) { return r.map(cell).join(','); }).join('\r\n'); }
   function download(name, rows) { root.ToolkitDownload.save(name, '﻿' + fromRows(rows), 'text/csv'); }
-  var api = { cell: cell, fromRows: fromRows, download: download };
+  function parse(text) {
+    text = String(text == null ? '' : text).replace(/^\uFEFF/, '');
+    var first = text.split(/\r?\n/, 1)[0], best = ',', bn = -1;
+    [',', ';', '\t'].forEach(function (d) { var n = first.split(d).length; if (n > 1 && n > bn) { best = d; bn = n; } });
+    var rows = [], row = [], c = '', q = false, i, ch;
+    for (i = 0; i < text.length; i++) {
+      ch = text[i];
+      if (q) { if (ch === '"') { if (text[i + 1] === '"') { c += '"'; i++; } else q = false; } else c += ch; }
+      else if (ch === '"' && c === '') q = true;
+      else if (ch === best) { row.push(c); c = ''; }
+      else if (ch === '\n' || ch === '\r') { if (ch === '\r' && text[i + 1] === '\n') i++; row.push(c); c = ''; rows.push(row); row = []; }
+      else c += ch;
+    }
+    if (c !== '' || row.length) { row.push(c); rows.push(row); }
+    return rows.map(function (r) { return r.map(function (v) { return /^'[=+\-@]/.test(v) ? v.slice(1) : v; }); })
+      .filter(function (r) { return r.length > 1 || (r.length === 1 && r[0].trim() !== ''); });
+  }
+  var api = { cell: cell, fromRows: fromRows, parse: parse, download: download };
   root.ToolkitCsv = api;
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
 })(typeof window !== 'undefined' ? window : globalThis);
@@ -270,7 +289,8 @@ details{margin:10px 0}summary{cursor:pointer;min-height:44px;padding:10px 0;font
 
 </script><script>
 /* Donor gift log + year-end receipt letters. Pure logic, no page access; works in the browser (global Donors) and in Node.
-   Data: {donors:[{id,name,address}], gifts:[{id,donorId,date,kind:'cash'|'goods',cents,desc,returned}]}
+   Data: {schemaVersion:2, donors:[{id,name,address}], gifts:[{id,donorId,date,kind:'cash'|'goods',cents,desc,returned,source,ref}]}
+   source = how it arrived (Venmo, PayPal, Check, Cash...), ref = the service's transaction id (used to spot duplicates on re-import). Both optional; version 1 data had neither.
    Money is kept in whole cents. `returned` is an optional note of anything the donor got back (a dinner ticket), with its estimated value. */
 (function (root) {
   'use strict';
@@ -286,7 +306,8 @@ details{margin:10px 0}summary{cursor:pointer;min-height:44px;padding:10px 0;font
   };
   var uid = 0;
   function newId(p) { uid++; return p + Date.now().toString(36) + uid.toString(36) + Math.random().toString(36).slice(2, 5); }
-  function emptyData() { return { donors: [], gifts: [] }; }
+  var SCHEMA = 2;
+  function emptyData() { return { schemaVersion: SCHEMA, donors: [], gifts: [] }; }
   function tidyName(s) {
     s = String(s == null ? '' : s).replace(/\s+/g, ' ').trim();
     var m = s.match(/^([^,]+),\s*([^,]+)$/); if (m && !/\b(inc|llc|co|corp|ltd)\b\.?$/i.test(s)) s = m[2] + ' ' + m[1];
@@ -316,14 +337,14 @@ details{margin:10px 0}summary{cursor:pointer;min-height:44px;padding:10px 0;font
   function addGift(d, o) {
     var donor = d.donors.filter(function (x) { return x.id === o.donorId; })[0]; if (!donor) return { error: 'Choose who gave the gift.' };
     if (!/^\d{4}-\d\d-\d\d$/.test(o.date || '')) return { error: 'Please type the date of the gift, like 12/15/2026.' };
-    var g = { id: newId('g'), donorId: donor.id, date: o.date, kind: o.kind === 'goods' ? 'goods' : 'cash', cents: 0, desc: String(o.desc || '').trim(), returned: String(o.returned || '').trim() };
+    var g = { id: newId('g'), donorId: donor.id, date: o.date, kind: o.kind === 'goods' ? 'goods' : 'cash', cents: 0, desc: String(o.desc || '').trim(), returned: String(o.returned || '').trim(), source: String(o.source || '').trim(), ref: String(o.ref || '').trim() };
     if (g.kind === 'cash') { g.cents = parseMoney(o.amount); if (!g.cents) return { error: 'Please type the amount, like 50 or 25.50.' }; }
     else if (!g.desc) return { error: 'Please describe the goods, like “12 cans of soup”.' };
     d.gifts.push(g); return { gift: g };
   }
   function updateGift(d, id, o) {
     var g = d.gifts.filter(function (x) { return x.id === id; })[0]; if (!g) return { error: 'Gift not found.' };
-    var tmp = { donors: d.donors, gifts: [] }, r = addGift(tmp, { donorId: o.donorId || g.donorId, date: o.date, kind: o.kind, amount: o.amount, desc: o.desc, returned: o.returned });
+    var tmp = { donors: d.donors, gifts: [] }, r = addGift(tmp, { donorId: o.donorId || g.donorId, date: o.date, kind: o.kind, amount: o.amount, desc: o.desc, returned: o.returned, source: o.source != null ? o.source : g.source, ref: g.ref });
     if (r.error) return r; var n = r.gift; n.id = g.id; d.gifts[d.gifts.indexOf(g)] = n; return { gift: n };
   }
   function removeGift(d, id) { var n = d.gifts.length; d.gifts = d.gifts.filter(function (g) { return g.id !== id; }); return d.gifts.length < n; }
@@ -382,10 +403,10 @@ details{margin:10px 0}summary{cursor:pointer;min-height:44px;padding:10px 0;font
     };
   }
   function csvRows(d, year) {
-    var rows = [['Date', 'Donor', 'Cash or goods', 'Amount', 'Description', 'Given in return']];
+    var rows = [['Date', 'Donor', 'Cash or goods', 'Amount', 'Description', 'Given in return', 'How it came in']];
     d.gifts.filter(function (g) { return year == null || yearOf(g) === year; }).sort(function (a, b) { return a.date < b.date ? -1 : 1; }).forEach(function (g) {
       var dn = d.donors.filter(function (x) { return x.id === g.donorId; })[0];
-      rows.push([g.date, dn ? dn.name : '', g.kind === 'cash' ? 'Cash' : 'Goods', g.kind === 'cash' ? (g.cents / 100).toFixed(2) : '', g.desc, g.returned]);
+      rows.push([g.date, dn ? dn.name : '', g.kind === 'cash' ? 'Cash' : 'Goods', g.kind === 'cash' ? (g.cents / 100).toFixed(2) : '', g.desc, g.returned, g.source || '']);
     });
     return rows;
   }
@@ -395,14 +416,89 @@ details{margin:10px 0}summary{cursor:pointer;min-height:44px;padding:10px 0;font
     (Array.isArray(x.gifts) ? x.gifts : []).forEach(function (g) {
       if (!g || !ids[String(g.donorId)] || !/^\d{4}-\d\d-\d\d$/.test(g.date || '')) return;
       var kind = g.kind === 'goods' ? 'goods' : 'cash', c = Math.round(+g.cents || 0); if (kind === 'cash' && !(c > 0)) return;
-      d.gifts.push({ id: String(g.id || newId('g')), donorId: String(g.donorId), date: g.date, kind: kind, cents: kind === 'cash' ? c : 0, desc: String(g.desc || ''), returned: String(g.returned || '') });
+      d.gifts.push({ id: String(g.id || newId('g')), donorId: String(g.donorId), date: g.date, kind: kind, cents: kind === 'cash' ? c : 0, desc: String(g.desc || ''), returned: String(g.returned || ''), source: String(g.source || ''), ref: String(g.ref || '') });
     });
     return d;
   }
-  var api = { DEFAULTS: DEFAULTS, emptyData: emptyData, tidyName: tidyName, parseMoney: parseMoney, money: money, fmtDate: fmtDate, yearOf: yearOf, findDonor: findDonor, addDonor: addDonor, addGift: addGift,
+  var api = { SCHEMA: SCHEMA, DEFAULTS: DEFAULTS, emptyData: emptyData, tidyName: tidyName, parseMoney: parseMoney, money: money, fmtDate: fmtDate, yearOf: yearOf, findDonor: findDonor, addDonor: addDonor, addGift: addGift,
     updateGift: updateGift, removeGift: removeGift, removeDonor: removeDonor, renameDonor: renameDonor, search: search, giftsFor: giftsFor, years: years, needsLetter: needsLetter,
     yearSummary: yearSummary, letter: letter, csvRows: csvRows, sanitize: sanitize };
   root.Donors = api; if (typeof module !== 'undefined' && module.exports) module.exports = api;
+})(typeof window !== 'undefined' ? window : globalThis);
+
+</script><script>
+/* Read the transaction lists Venmo and PayPal let you download (or any CSV with a date, a name and an amount) and turn them into gifts.
+   Pure logic, no page access: browser (global DonorImport) and Node. Needs Donors, ToolkitCsv (parse) and ToolkitDates (parse).
+   read(text)          -> {source:'Venmo'|'PayPal'|'Spreadsheet', rows:[{ref,date,name,cents}], skipped:[{why,n}]} or {error}
+   plan(data, source, rows) -> same rows with .dup (already in the log) and .isNew (donor not yet known)
+   apply(data, source, rows) -> {gifts, donors}: adds the rows the caller left (caller drops duplicates / unticked rows) */
+(function (root) {
+  'use strict';
+  function D() { return root.Donors || require('./donors.js'); }
+  function Csv() { return root.ToolkitCsv || require('../../components/csv-export/csv.js'); }
+  function Dt() { return root.ToolkitDates || require('../../components/date-parse/dates.js'); }
+  var low = function (s) { return String(s == null ? '' : s).trim().toLowerCase(); };
+  var BAD_TYPE = /refund|reversal|chargeback|dispute|fee|withdraw|transfer|conversion|hold|release|payout|bank|card|reserve|cancel|currency|authoriz|order|invoice sent|subscription (sign|cancel)/;
+
+  function col(h, re) { for (var i = 0; i < h.length; i++) if (re.test(h[i])) return i; return -1; }
+  /* "+ $1,250.00" -> 125000, "- $5.00" -> -500, "(5.00)" -> -500 */
+  function signedCents(s) {
+    s = String(s == null ? '' : s).trim(); if (!s) return null;
+    var neg = /-/.test(s) || /^\(/.test(s), c = D().parseMoney(s.replace(/[+\-()]/g, ''));
+    return c == null ? null : (neg ? -c : c);
+  }
+  function isoDate(s) { s = String(s || '').trim(); var m = /^(\d{4}-\d\d-\d\d)/.exec(s); return m ? m[1] : Dt().parse(s.replace(/\s+\d{1,2}:\d\d.*$/, '')); }
+
+  function read(text) {
+    var rows; try { rows = Csv().parse(text); } catch (e) { rows = []; }
+    var hi = -1, h, i;
+    for (i = 0; i < Math.min(rows.length, 30); i++) {
+      h = rows[i].map(low);
+      if (h.some(function (x) { return /^(date|datetime|transaction date)/.test(x); }) && h.some(function (x) { return /amount|gross|total|paid/.test(x); })) { hi = i; break; }
+    }
+    if (hi < 0) return { error: 'We could not find the dates and amounts in that file. Is it the CSV list of transactions you downloaded from Venmo or PayPal?' };
+    h = rows[hi].map(low);
+    var cDate = col(h, /^(date|datetime|transaction date)/), venmo = col(h, /^amount \(total\)/) >= 0 && col(h, /^from$/) >= 0, paypal = col(h, /^gross$/) >= 0 && col(h, /^name$/) >= 0;
+    var cAmt = venmo ? col(h, /^amount \(total\)/) : paypal ? col(h, /^gross$/) : col(h, /^amount|^gross|^total|^paid|amount/);
+    var cName = venmo ? col(h, /^from$/) : paypal ? col(h, /^name$/) : col(h, /^(donor|name|from|payer|received from|paid by|full name)/);
+    var cType = col(h, /^type$/), cStat = col(h, /^status$/), cRef = venmo ? col(h, /^id$/) : col(h, /^(transaction id|reference|id)/);
+    if (cName < 0 || cAmt < 0) return { error: 'We found dates and amounts but no column of names. Open the file in a spreadsheet and make sure there is a column headed “Name”.' };
+    var out = [], skipped = {}, skip = function (w) { skipped[w] = (skipped[w] || 0) + 1; };
+    rows.slice(hi + 1).forEach(function (r) {
+      var cents = signedCents(r[cAmt]), name = String(r[cName] || '').trim(), type = low(cType >= 0 ? r[cType] : ''), st = low(cStat >= 0 ? r[cStat] : '');
+      if (!r.some(function (x) { return String(x).trim(); }) || (cents == null && !name)) return;
+      if (cents == null) return skip('no readable amount');
+      if (cents <= 0) return skip('money going out, refunds and fees');
+      if (st && !/^(complete|completed|paid|cleared|success)/.test(st)) return skip('not completed');
+      if (type && (BAD_TYPE.test(type) || (venmo && !/payment|charge/.test(type)))) return skip('transfers, refunds and other non-gifts');
+      if (!name) return skip('no name');
+      var date = isoDate(r[cDate]); if (!date) return skip('no readable date');
+      out.push({ ref: cRef >= 0 ? String(r[cRef] || '').trim() : '', date: date, name: D().tidyName(name), cents: cents });
+    });
+    return { source: venmo ? 'Venmo' : paypal ? 'PayPal' : 'Spreadsheet', rows: out, skipped: Object.keys(skipped).map(function (w) { return { why: w, n: skipped[w] }; }) };
+  }
+
+  function plan(data, source, rows) {
+    return rows.map(function (r) {
+      var dn = D().findDonor(data, r.name), dup = data.gifts.some(function (g) {
+        if (r.ref && g.ref && g.ref === r.ref) return true;
+        return !!dn && g.donorId === dn.id && g.date === r.date && g.cents === r.cents && (!g.source || g.source === source) && g.kind === 'cash' && !(r.ref && g.ref);
+      });
+      return Object.assign({}, r, { dup: dup, isNew: !dn });
+    });
+  }
+  function apply(data, source, rows) {
+    var gifts = 0, donors = 0, src = source === 'Spreadsheet' ? 'Imported' : source;
+    rows.forEach(function (r) {
+      var before = data.donors.length, a = D().addDonor(data, r.name); if (a.error) return;
+      if (data.donors.length > before) donors++;
+      var g = D().addGift(data, { donorId: a.donor.id, date: r.date, kind: 'cash', amount: r.cents / 100, source: src, ref: r.ref });
+      if (g.gift) gifts++;
+    });
+    return { gifts: gifts, donors: donors };
+  }
+  var api = { read: read, plan: plan, apply: apply, signedCents: signedCents };
+  root.DonorImport = api; if (typeof module !== 'undefined' && module.exports) module.exports = api;
 })(typeof window !== 'undefined' ? window : globalThis);
 
 </script><script>
@@ -423,16 +519,21 @@ details{margin:10px 0}summary{cursor:pointer;min-height:44px;padding:10px 0;font
     g('Tomas Okafor', (y + 1) + '-01-02', 'cash', '20');
     return d;
   }
-  root.DonorSample = { orgName: 'Example Community Pantry', letterhead: 'Example Community Pantry\n1 Church Street, Springfield, XX 00000\nexample-pantry.example · 555-0100', signer: 'Pat Sample', signerTitle: 'Treasurer', ein: '00-0000000', build: build };
+  /* The practice settings as shipped. An organization's org-config.js may change orgName, letterhead... above, but these stay as the originals,
+     so a leftover original is always recognised as practice text. */
+  var PRACTICE = { org: 'Example Community Pantry', letterhead: 'Example Community Pantry\n1 Church Street, Springfield, XX 00000\nexample-pantry.example · 555-0100', signer: 'Pat Sample', signerTitle: 'Treasurer', ein: '00-0000000' };
+  /* Blank every setting that still holds a practice value (the originals, or the values seed() put there). Values the organization typed are kept.
+     The organization's own name from org-config is theirs, so only the original practice name counts for `org`. Returns the keys cleared. */
+  function clearPractice(settings) {
+    var S = root.DonorSample, seeded = { letterhead: S.letterhead, signer: S.signer, signerTitle: S.signerTitle, ein: S.ein }, cleared = [];
+    Object.keys(PRACTICE).forEach(function (k) {
+      var v = settings[k]; if (v == null || v === '') return;
+      if (v === PRACTICE[k] || (seeded[k] && v === seeded[k])) { settings[k] = ''; cleared.push(k); }
+    });
+    return cleared;
+  }
+  root.DonorSample = { PRACTICE: PRACTICE, clearPractice: clearPractice, orgName: 'Example Community Pantry', letterhead: 'Example Community Pantry\n1 Church Street, Springfield, XX 00000\nexample-pantry.example · 555-0100', signer: 'Pat Sample', signerTitle: 'Treasurer', ein: '00-0000000', build: build };
 })(typeof window !== 'undefined' ? window : globalThis);
-
-</script><script>
-/* This build's own layer: made-up example pantry wording for the showcase. Change inside the app (More), not here. */
-Object.assign(window.DonorSample, {
-  orgName: 'Example Community Pantry',
-  letterhead: 'Example Community Pantry\n1 Church Street, Springfield, XX 00000\nexample-pantry.example · 555-0100',
-  signer: 'Pat Sample', signerTitle: 'Treasurer', ein: '00-0000000'
-});
 
 </script><script>
 /* Browser storage adapter: load() -> data|null, save(data) -> bool, loadSettings(), saveSettings(obj). Data never leaves this device. */
@@ -454,25 +555,27 @@ Object.assign(window.DonorSample, {
 /* Donor gifts and receipt letters UI. Plain JS; talks to Donors (core) and DonorStorage (adapter). */
 (function () {
   'use strict';
-  var C = window.Donors, S = window.DonorStorage, SAMPLE = window.DonorSample, Dt = window.ToolkitDates;
+  var C = window.Donors, S = window.DonorStorage, SAMPLE = window.DonorSample, IM = window.DonorImport, Dt = window.ToolkitDates;
   var settings = S.loadSettings(), data = S.load(), screen = 'log', toastTimer = null, storageOk = true;
-  var form = null, giftYear = null, letterYear = null, $app = document.getElementById('app');
+  var imp = null, form = null, giftYear = null, letterYear = null, $app = document.getElementById('app');
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
-  function fresh() { return { q: '', donorId: null, address: '', date: Dt.today(), kind: 'cash', amount: '', desc: '', returned: '', editId: null, err: '' }; }
+  function fresh() { return { q: '', donorId: null, address: '', date: Dt.today(), kind: 'cash', amount: '', desc: '', returned: '', source: '', editId: null, err: '' }; }
   function seed() {
     data = SAMPLE.build(); settings.org = SAMPLE.orgName; settings.letterhead = SAMPLE.letterhead; settings.signer = SAMPLE.signer; settings.signerTitle = SAMPLE.signerTitle; settings.ein = SAMPLE.ein; settings.sample = true;
     save();
   }
   if (!data) { seed(); settings.welcome = true; save(); }
+  else if (!settings.sample && SAMPLE.clearPractice(settings).length) save(); // practice text left behind by an earlier "Start fresh"
   form = fresh(); ToolkitTheme.apply(settings.theme);
   function save() { storageOk = S.save(data); S.saveSettings(settings); }
   function snapshot() { return JSON.stringify(data); }
-  function toast(msg, undoSnap) {
+  function settingsSnap() { return JSON.stringify(settings); }
+  function toast(msg, undoSnap, undoSet) {
     var old = document.getElementById('toast'); if (old) old.remove(); clearTimeout(toastTimer);
     var t = document.createElement('div'); t.id = 'toast'; t.className = 'toast'; t.setAttribute('role', 'status');
     t.innerHTML = '<span>' + esc(msg) + '</span>' + (undoSnap ? '<button type="button">Undo</button>' : '');
     document.body.appendChild(t);
-    if (undoSnap) t.querySelector('button').onclick = function () { data = C.sanitize(JSON.parse(undoSnap)); save(); t.remove(); render(); };
+    if (undoSnap) t.querySelector('button').onclick = function () { data = C.sanitize(JSON.parse(undoSnap)); if (undoSet) settings = JSON.parse(undoSet); save(); t.remove(); render(); };
     toastTimer = setTimeout(function () { t.remove(); }, 8000);
   }
   function go(s) { screen = s; render(); window.scrollTo(0, 0); }
@@ -489,7 +592,7 @@ Object.assign(window.DonorSample, {
       (storageOk ? '' : '<div class="alert noprint"><b>This browser is not saving.</b> Your gifts will be lost if you close this page. Open the page in a normal (not private) window.</div>');
   }
   function tabs() {
-    var t = [['log', '➕ Log a gift'], ['gifts', '📒 All gifts'], ['letters', '✉ Year-end letters'], ['more', '⋯ More']];
+    var t = [['log', '➕ Log a gift'], ['import', '📥 Import Venmo / PayPal'], ['gifts', '📒 All gifts'], ['letters', '✉ Year-end letters'], ['more', '⋯ More']];
     return '<nav class="tabs noprint" aria-label="Main">' + t.map(function (x) { return '<button type="button" data-act="tab" data-v="' + x[0] + '"' + (screen === x[0] ? ' aria-current="page"' : '') + '>' + x[1] + '</button>'; }).join('') + '</nav>';
   }
   function welcome() {
@@ -497,7 +600,7 @@ Object.assign(window.DonorSample, {
     return ToolkitWelcome.html({ title: 'Welcome! Three things to try', steps: [
       'Type <b>“gra”</b> in the donor box below, tap <b>Grace Bellamy</b>, type an amount and tap <b>Save this gift</b>.',
       'Open <b>Year-end letters</b> to see last year’s letters, already written for every donor. Tap <b>Print all letters</b>.',
-      'Open <b>More</b> to put in your own letterhead, then <b>Start fresh</b> to clear the practice donors. Nothing ever leaves this device.'] });
+      'Open <b>More</b> to put in your own letterhead, then <b>Start fresh</b> to clear the practice donors and letterhead. Nothing ever leaves this device.'] });
   }
 
   function logScreen() {
@@ -512,8 +615,9 @@ Object.assign(window.DonorSample, {
       (f.kind === 'cash' ? '<div><label for="ga">Amount</label><input id="ga" inputmode="decimal" value="' + esc(f.amount) + '" placeholder="$50"></div>' : '') + '</div>' +
       (f.kind === 'goods' ? '<label for="gx">What was given? (describe it, no dollar value)</label><input id="gx" value="' + esc(f.desc) + '" placeholder="12 cans of soup and 2 bags of rice">'
         : '') +
-      '<details' + (f.returned || (f.kind === 'cash' && f.desc) ? ' open' : '') + '><summary>More options</summary>' +
+      '<details' + (f.returned || f.source || (f.kind === 'cash' && f.desc) ? ' open' : '') + '><summary>More options</summary>' +
       (f.kind === 'cash' ? '<label for="gx">Note (like “memorial gift for …”, optional)</label><input id="gx" value="' + esc(f.desc) + '">' : '') +
+      '<label for="gs">How did it come in?</label><select id="gs">' + ['', 'Check', 'Cash', 'Venmo', 'PayPal', 'Other'].map(function (o) { return '<option value="' + o + '"' + (f.source === o ? ' selected' : '') + '>' + (o || 'Not sure / do not say') + '</option>'; }).join('') + '</select>' +
       '<label for="gr">Did they get something in return? (like a dinner ticket. Say what and its estimated value.)</label><input id="gr" value="' + esc(f.returned) + '" placeholder="Leave empty if nothing"></details>' +
       '<div id="ferr" class="err" role="alert">' + esc(f.err) + '</div>' +
       '<div class="actions"><button class="primary" type="button" data-act="saveGift">' + (f.editId ? 'Save changes' : 'Save this gift') + '</button>' + (f.editId ? '<button type="button" data-act="cancelEdit">Cancel</button>' : '') + '</div></div>' +
@@ -532,7 +636,7 @@ Object.assign(window.DonorSample, {
   }
   function giftRow(g) {
     var dn = donor(g.donorId);
-    return '<div class="res"><div class="who"><b>' + esc(dn ? dn.name : '?') + '</b><div class="muted small">' + esc(C.fmtDate(g.date)) + ' · ' + (g.kind === 'cash' ? '<b>' + C.money(g.cents) + '</b>' + (g.desc ? ' · ' + esc(g.desc) : '') : '🥫 ' + esc(g.desc)) + (g.returned ? ' · gave back: ' + esc(g.returned) : '') + '</div></div>' +
+    return '<div class="res"><div class="who"><b>' + esc(dn ? dn.name : '?') + '</b><div class="muted small">' + esc(C.fmtDate(g.date)) + ' · ' + (g.kind === 'cash' ? '<b>' + C.money(g.cents) + '</b>' + (g.desc ? ' · ' + esc(g.desc) : '') : '🥫 ' + esc(g.desc)) + (g.source ? ' · ' + esc(g.source) : '') + (g.returned ? ' · gave back: ' + esc(g.returned) : '') + '</div></div>' +
       '<div class="btns"><button class="small" type="button" data-act="editGift" data-id="' + g.id + '" aria-label="Change gift from ' + esc(dn ? dn.name : '') + '">Change</button><button class="small danger" type="button" data-act="delGift" data-id="' + g.id + '" aria-label="Delete gift from ' + esc(dn ? dn.name : '') + '">Delete</button></div></div>';
   }
   function giftsScreen() {
@@ -540,6 +644,21 @@ Object.assign(window.DonorSample, {
     var cash = gs.reduce(function (s, g) { return s + (g.kind === 'cash' ? g.cents : 0); }, 0);
     return '<h2>All gifts</h2><div class="card"><label for="gy">Year</label>' + yearSelect('gy', y) + '<p><b>' + gs.length + '</b> gifts · cash total <b>' + C.money(cash) + '</b></p>' +
       '<div class="actions" style="margin-top:0"><button type="button" data-act="csv">Download for spreadsheet</button></div></div>' + (gs.length ? gs.map(giftRow).join('') : '<p class="muted">No gifts in ' + y + ' yet.</p>');
+  }
+
+  function importScreen() {
+    var intro = '<h2>Import gifts from Venmo or PayPal</h2><div class="card"><p>Download your list of transactions from Venmo or PayPal, then choose that file here. Donors are matched by name, so nobody gets retyped. Nothing is uploaded: the file is read on this device.</p>' +
+      '<div class="actions"><button class="primary" type="button" data-act="impPick">Choose the file…</button></div>' + '<input id="impfile" type="file" accept=".csv,text/csv,text/plain" class="sr" tabindex="-1" aria-label="Choose the Venmo or PayPal file">' +
+      (imp && imp.err ? '<div class="err" role="alert">' + esc(imp.err) + '</div>' : '') +
+      '<details><summary>How do I get the file?</summary><p><b>Venmo:</b> on venmo.com choose <b>Statements</b>, pick the dates, then <b>Download CSV</b>.</p><p><b>PayPal:</b> log in, choose <b>Activity</b> → <b>Statements</b> → <b>Activity download</b>, pick the dates, format <b>CSV</b>, then <b>Create report</b> and download it.</p><p>A plain spreadsheet saved as CSV also works if it has columns headed Date, Name and Amount.</p><p class="muted small">Only money coming in is read. Refunds, fees, transfers to your bank and unfinished payments are skipped. Each gift is for the full amount the donor sent, before Venmo or PayPal took their fee.</p></details></div>';
+    if (!imp || !imp.rows) return intro;
+    var rows = imp.rows, n = rows.filter(function (r) { return r.on; }).length, skipped = imp.skipped.map(function (s) { return s.n + ' skipped (' + s.why + ')'; }).join(', ');
+    return intro + '<h2>Check, then add</h2><div class="card"><p><b>' + rows.length + '</b> ' + esc(imp.source) + ' gifts found in “' + esc(imp.fileName) + '”.' + (skipped ? ' <span class="muted">' + esc(skipped) + '.</span>' : '') + ' Untick any that are not donations, and fix names that are shortened or misspelled.</p>' +
+      (rows.length ? rows.map(function (r, i) {
+        return '<div class="res"><label class="who" style="font-weight:400"><input type="checkbox" data-imp="on" data-i="' + i + '" style="width:auto;min-height:0"' + (r.on ? ' checked' : '') + ' aria-label="Add this gift"> ' + esc(C.fmtDate(r.date)) + ' · <b>' + C.money(r.cents) + '</b>' +
+          (r.dup ? ' <span class="muted small">(already in your log)</span>' : '') + '</label><div><input data-imp="name" data-i="' + i + '" value="' + esc(r.name) + '" aria-label="Donor name" style="margin:0"><div class="muted small">' + (r.isNew ? 'New donor' : 'Known donor') + '</div></div></div>';
+      }).join('') : '<p class="muted">Nothing in that file looked like a donation.</p>') +
+      '<div class="actions"><button class="primary" type="button" data-act="impAdd"' + (n ? '' : ' disabled') + '>Add ' + n + ' gift' + (n === 1 ? '' : 's') + '</button><button type="button" data-act="impCancel">Cancel</button></div></div>';
   }
 
   function letterHtml(L) {
@@ -583,14 +702,14 @@ Object.assign(window.DonorSample, {
   }
 
   function render() {
-    var body = screen === 'log' ? logScreen() : screen === 'gifts' ? giftsScreen() : screen === 'letters' ? lettersScreen() : moreScreen();
+    var body = screen === 'log' ? logScreen() : screen === 'gifts' ? giftsScreen() : screen === 'import' ? importScreen() : screen === 'letters' ? lettersScreen() : moreScreen();
     $app.innerHTML = header() + '<main>' + body + '</main>' + tabs();
     paintSugg(); paintPeople();
     var q = document.getElementById('q'); if (q && !settings.welcome) { try { q.focus({ preventScroll: true }); var n = q.value.length; q.setSelectionRange(n, n); } catch (e) {} }
   }
   function readForm() {
     var g = function (id) { var e = document.getElementById(id); return e ? e.value : null; };
-    if (g('gd') != null) form.date = g('gd'); if (g('ga') != null) form.amount = g('ga'); if (g('gx') != null) form.desc = g('gx'); if (g('gr') != null) form.returned = g('gr'); if (g('addr') != null) form.address = g('addr');
+    if (g('gd') != null) form.date = g('gd'); if (g('ga') != null) form.amount = g('ga'); if (g('gx') != null) form.desc = g('gx'); if (g('gr') != null) form.returned = g('gr'); if (g('gs') != null) form.source = g('gs'); if (g('addr') != null) form.address = g('addr');
   }
   function saveGift() {
     readForm();
@@ -600,7 +719,7 @@ Object.assign(window.DonorSample, {
       var r = C.addDonor(data, form.q, form.address); if (r.error) { form.err = r.error; return render(); } id = r.donor.id;
       if (r.existed && form.address.trim() && !r.donor.address) r.donor.address = form.address.trim();
     }
-    var o = { donorId: id, date: date, kind: form.kind, amount: form.amount, desc: form.desc, returned: form.returned };
+    var o = { donorId: id, date: date, kind: form.kind, amount: form.amount, desc: form.desc, returned: form.returned, source: form.source };
     var res = form.editId ? C.updateGift(data, form.editId, o) : C.addGift(data, o);
     if (res.error) { data = C.sanitize(JSON.parse(snap)); form.err = res.error; return render(); }
     var who = donor(id).name, editing = form.editId; save(); form = fresh(); form.date = date;
@@ -613,11 +732,26 @@ Object.assign(window.DonorSample, {
     else if (t.id === 'pq') paintPeople();
     else if (t.getAttribute('data-set')) { settings[t.getAttribute('data-set')] = t.value; if (t.getAttribute('data-set') === 'org') document.querySelector('header.top h1').textContent = t.value || 'Donor gifts'; save(); }
     else if (t.getAttribute('data-wk')) { settings[t.getAttribute('data-wk')] = t.value; save(); }
-    else if (['gd', 'ga', 'gx', 'gr', 'addr'].indexOf(t.id) >= 0) readForm();
+    else if (['gd', 'ga', 'gx', 'gr', 'addr', 'gs'].indexOf(t.id) >= 0) readForm();
     else if (t.id === 'ldate') { var iso = Dt.parse(t.value); settings.letterDate = iso || ''; save(); }
   });
   $app.addEventListener('change', function (e) {
     var t = e.target;
+    if (t.id === 'impfile' && t.files[0]) {
+      var file = t.files[0], fr = new FileReader();
+      fr.onload = function () {
+        var r = IM.read(String(fr.result)); t.value = '';
+        if (r.error) { imp = { err: r.error }; return render(); }
+        imp = { source: r.source, fileName: file.name, skipped: r.skipped, rows: IM.plan(data, r.source, r.rows) }; imp.rows.forEach(function (x) { x.on = !x.dup; }); render();
+      };
+      fr.onerror = function () { imp = { err: 'We could not open that file. Try downloading it again.' }; render(); }; fr.readAsText(file); return;
+    }
+    if (t.getAttribute('data-imp')) {
+      var row = imp.rows[+t.getAttribute('data-i')];
+      if (t.getAttribute('data-imp') === 'on') row.on = t.checked;
+      else { row.name = C.tidyName(t.value) || row.name; var p = IM.plan(data, imp.source, [row])[0]; row.dup = p.dup; row.isNew = p.isNew; if (row.dup) row.on = false; }
+      return render();
+    }
     if (t.id === 'gy') { giftYear = +t.value; render(); } else if (t.id === 'ly') { letterYear = +t.value; render(); }
     else if (t.id === 'only') { settings.onlyNeeded = t.checked; save(); render(); }
     else if (t.id === 'ldate') render();
@@ -643,8 +777,14 @@ Object.assign(window.DonorSample, {
     else if (act === 'unpick') { readForm(); form.donorId = null; render(); }
     else if (act === 'kind') { readForm(); form.kind = b.getAttribute('data-v'); render(); }
     else if (act === 'saveGift') saveGift();
+    else if (act === 'impPick') document.getElementById('impfile').click();
+    else if (act === 'impCancel') { imp = null; render(); }
+    else if (act === 'impAdd') {
+      var pick = imp.rows.filter(function (r) { return r.on; }); snap = snapshot(); var res = IM.apply(data, imp.source, pick); save();
+      toast('Added ' + res.gifts + ' gift' + (res.gifts === 1 ? '' : 's') + (res.donors ? ' and ' + res.donors + ' new donor' + (res.donors === 1 ? '' : 's') : '') + '.', snap); giftYear = pick.length ? +pick[pick.length - 1].date.slice(0, 4) : null; imp = null; go('gifts');
+    }
     else if (act === 'cancelEdit') { form = fresh(); go('gifts'); }
-    else if (act === 'editGift') { var g = data.gifts.filter(function (x) { return x.id === id; })[0]; form = { q: '', donorId: g.donorId, address: '', date: g.date, kind: g.kind, amount: g.kind === 'cash' ? (g.cents / 100).toFixed(2) : '', desc: g.desc, returned: g.returned, editId: g.id, err: '' }; go('log'); }
+    else if (act === 'editGift') { var g = data.gifts.filter(function (x) { return x.id === id; })[0]; form = { q: '', donorId: g.donorId, address: '', date: g.date, kind: g.kind, amount: g.kind === 'cash' ? (g.cents / 100).toFixed(2) : '', desc: g.desc, returned: g.returned, source: g.source || '', editId: g.id, err: '' }; go('log'); }
     else if (act === 'delGift') { var gg = data.gifts.filter(function (x) { return x.id === id; })[0], dn = donor(gg.donorId); if (!confirm('Delete the gift from ' + dn.name + ' on ' + C.fmtDate(gg.date) + '?')) return; snap = snapshot(); C.removeGift(data, id); save(); toast('Gift deleted.', snap); render(); }
     else if (act === 'printLetters') ToolkitPrint.print((settings.org || 'Donor') + ' year-end letters ' + (letterYear || lastYear()));
     else if (act === 'csv') ToolkitCsv.download('gifts-' + (giftYear || lastYear()) + '.csv', C.csvRows(data, giftYear || lastYear()));
@@ -654,8 +794,8 @@ Object.assign(window.DonorSample, {
     else if (act === 'wordsReset') { ['intro', 'cashNote', 'goodsNote', 'nothingReturned', 'taxLine', 'closing'].forEach(function (k) { delete settings[k]; }); save(); render(); toast('Standard wording is back.'); }
     else if (act === 'editDonor') { var x = donor(id), nm = prompt('Name:', x.name); if (nm == null) return; var ad = prompt('Mailing address (use a comma between lines, leave empty for none):', (x.address || '').replace(/\n/g, ', ')); if (ad == null) return; snap = snapshot(); var r = C.renameDonor(data, id, nm, ad.split(/\s*,\s*/).join('\n')); if (r.error) return toast(r.error); save(); toast('Saved.', snap); render(); }
     else if (act === 'delDonor') { var y = donor(id), n = data.gifts.filter(function (z) { return z.donorId === id; }).length; if (!confirm('Remove ' + y.name + (n ? ' and their ' + n + ' gift' + (n === 1 ? '' : 's') : '') + '?')) return; snap = snapshot(); C.removeDonor(data, id); save(); toast(y.name + ' removed.', snap); render(); }
-    else if (act === 'sampleReset') { if (!confirm('Replace everything with made-up practice donors?')) return; snap = snapshot(); seed(); toast('Practice data is back.', snap); form = fresh(); go('log'); }
-    else if (act === 'fresh') { if (!confirm('Clear all donors and gifts so you can start with real ones? (Your backup files are not touched. You can undo right after.)')) return; snap = snapshot(); data = C.emptyData(); settings.sample = false; settings.welcome = false; save(); toast('Cleared. Ready for real gifts.', snap); form = fresh(); go('log'); }
+    else if (act === 'sampleReset') { if (!confirm('Replace everything with made-up practice donors?')) return; snap = snapshot(); var ss = settingsSnap(); seed(); toast('Practice data is back.', snap, ss); form = fresh(); go('log'); }
+    else if (act === 'fresh') { if (!confirm('Clear all donors and gifts so you can start with real ones? (Your backup files are not touched. You can undo right after.)')) return; snap = snapshot(); var setSnap = settingsSnap(); data = C.emptyData(); SAMPLE.clearPractice(settings); settings.sample = false; settings.welcome = false; save(); toast('Cleared, including the practice letterhead and signer. Ready for real gifts.', snap, setSnap); form = fresh(); go('log'); }
   });
   render();
 })();

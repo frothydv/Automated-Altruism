@@ -12,6 +12,7 @@
   .print-only{display:block!important}
   .card,.res,tr{break-inside:avoid;box-shadow:none}
   .print-break{break-before:page}
+  .print-page{break-after:page;page-break-after:always}.print-page:last-child{break-after:auto;page-break-after:auto}
   body.printing-section .print-section:not(.print-this){display:none!important}
   table{border-collapse:collapse}th,td{border:1px solid #000;padding:6px;text-align:left;vertical-align:top}
 }
@@ -91,6 +92,9 @@ details.more{margin:14px 0}details.more summary{cursor:pointer;min-height:44px;p
   .pl-cols h2{font-size:11.5pt;margin:8px 0 3px;border-bottom:1px solid #000;break-after:avoid}
   .pl-item{break-inside:avoid;margin:0 0 5px}.pl-item b{font-size:1.05em}.pl-item i{color:#333}
   .pl-foot{margin-top:8px;font-size:9pt;border-top:1px solid #000;padding-top:4px}
+  .pl-page .pl-kind{font-size:12pt;line-height:1.35}.small-print .pl-page .pl-kind{font-size:10.5pt}.tiny-print .pl-page .pl-kind{font-size:9pt}
+  .pl-page .pl-kind h2{font-size:15pt;margin:14px 0 6px;border-bottom:2px solid #000}
+  .pl-page .pl-item{margin:0 0 10px}
 }
 @media(max-width:560px){.row2{grid-template-columns:1fr}}
 </style></head>
@@ -134,13 +138,32 @@ details.more{margin:14px 0}details.more summary{cursor:pointer;min-height:44px;p
 /* CSV export for spreadsheets. Works in the browser and in Node (core logic can require it).
    cell(v)  - one safe cell: quotes when needed, and defuses leading = + - @ so spreadsheets never run it as a formula
    fromRows(rows) - array of arrays -> CSV text with Windows line breaks
+   parse(text) - the reverse: CSV text -> array of arrays. Handles quotes, line breaks inside cells, a byte-order mark, and , ; or tab separators.
+     Undoes the formula guard (a leading ' before = + - @) so a file this tool exported reads back unchanged.
    download(filename, rows) - saves the file with a byte-order mark so Excel shows accents correctly (needs file-download) */
 (function (root) {
   'use strict';
   function cell(v) { v = String(v == null ? '' : v); if (/^[=+\-@]/.test(v)) v = "'" + v; return /[",\n\r]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; }
   function fromRows(rows) { return rows.map(function (r) { return r.map(cell).join(','); }).join('\r\n'); }
   function download(name, rows) { root.ToolkitDownload.save(name, '﻿' + fromRows(rows), 'text/csv'); }
-  var api = { cell: cell, fromRows: fromRows, download: download };
+  function parse(text) {
+    text = String(text == null ? '' : text).replace(/^\uFEFF/, '');
+    var first = text.split(/\r?\n/, 1)[0], best = ',', bn = -1;
+    [',', ';', '\t'].forEach(function (d) { var n = first.split(d).length; if (n > 1 && n > bn) { best = d; bn = n; } });
+    var rows = [], row = [], c = '', q = false, i, ch;
+    for (i = 0; i < text.length; i++) {
+      ch = text[i];
+      if (q) { if (ch === '"') { if (text[i + 1] === '"') { c += '"'; i++; } else q = false; } else c += ch; }
+      else if (ch === '"' && c === '') q = true;
+      else if (ch === best) { row.push(c); c = ''; }
+      else if (ch === '\n' || ch === '\r') { if (ch === '\r' && text[i + 1] === '\n') i++; row.push(c); c = ''; rows.push(row); row = []; }
+      else c += ch;
+    }
+    if (c !== '' || row.length) { row.push(c); rows.push(row); }
+    return rows.map(function (r) { return r.map(function (v) { return /^'[=+\-@]/.test(v) ? v.slice(1) : v; }); })
+      .filter(function (r) { return r.length > 1 || (r.length === 1 && r[0].trim() !== ''); });
+  }
+  var api = { cell: cell, fromRows: fromRows, parse: parse, download: download };
   root.ToolkitCsv = api;
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
 })(typeof window !== 'undefined' ? window : globalThis);
@@ -255,6 +278,89 @@ details.more{margin:14px 0}details.more summary{cursor:pointer;min-height:44px;p
   root.ToolkitWelcome = { html: html };
   if (typeof module !== 'undefined' && module.exports) module.exports = root.ToolkitWelcome;
 })(typeof window !== 'undefined' ? window : globalThis);
+
+</script><script>
+/* Practice data helper: remembers which settings a tool filled with made-up values, and clears them on "start fresh".
+   Plain script (global ToolkitPracticeData) or require(). No storage of its own: it works on the tool's settings object.
+   Settings are cleared only when they still hold the practice value, so a name the charity typed is never touched. */
+(function (root, factory) {
+  if (typeof module === 'object' && module.exports) module.exports = factory(); else root.ToolkitPracticeData = factory();
+})(typeof self !== 'undefined' ? self : this, function () {
+  'use strict';
+  var MARK = 'practiceSet'; // settings.practiceSet = { key: practiceValue } for every setting seed() filled
+  var DEFAULT_FLAGS = { sample: { key: 'sample', practice: true, fresh: false }, welcome: { key: 'welcome', practice: true, fresh: false } };
+
+  function flags(opts) {
+    var f = (opts && opts.flags) || {}, o = {};
+    ['sample', 'welcome'].forEach(function (n) { o[n] = f[n] === null ? null : Object.assign({}, DEFAULT_FLAGS[n], f[n] || {}); });
+    return o;
+  }
+  function same(a, b) { return JSON.stringify(a) === JSON.stringify(b); }
+
+  /* Fill settings with practice values and remember them. values: {org: 'Example Pantry', ...}. Sets the practice banner and welcome flags. */
+  function seed(settings, values, opts) {
+    var f = flags(opts), rec = {};
+    Object.keys(values || {}).forEach(function (k) { settings[k] = values[k]; rec[k] = values[k]; });
+    settings[MARK] = Object.assign(settings[MARK] || {}, rec);
+    if (f.sample) settings[f.sample.key] = f.sample.practice;
+    if (f.welcome) settings[f.welcome.key] = f.welcome.practice;
+    return settings;
+  }
+
+  /* Which setting keys still hold a practice value? Checks what seed() recorded, plus opts.legacy ({key: [values]}) for data saved
+     before this component existed. */
+  function practiceKeys(settings, opts) {
+    var rec = settings[MARK] || {}, legacy = (opts && opts.legacy) || {}, out = [];
+    Object.keys(rec).concat(Object.keys(legacy)).forEach(function (k) {
+      if (out.indexOf(k) >= 0 || settings[k] === undefined) return;
+      var cands = [rec[k]].concat(legacy[k] || []).filter(function (v) { return v !== undefined; });
+      if (cands.some(function (v) { return same(v, settings[k]); })) out.push(k);
+    });
+    return out;
+  }
+
+  /* Clear every still-practice setting (to opts.blank, default ''), the banner and welcome flags, and the record of what was seeded.
+     Returns {cleared: [keys], kept: [keys the charity changed]}. */
+  function clearSettings(settings, opts) {
+    var f = flags(opts), blank = opts && 'blank' in opts ? opts.blank : '', rec = settings[MARK] || {}, legacy = (opts && opts.legacy) || {};
+    var cleared = practiceKeys(settings, opts), kept = Object.keys(rec).concat(Object.keys(legacy)).filter(function (k, i, a) {
+      return a.indexOf(k) === i && cleared.indexOf(k) < 0 && settings[k] !== undefined && settings[k] !== blank;
+    });
+    cleared.forEach(function (k) { settings[k] = blank; });
+    delete settings[MARK];
+    if (f.sample) settings[f.sample.key] = f.sample.fresh;
+    if (f.welcome) settings[f.welcome.key] = f.welcome.fresh;
+    return { cleared: cleared, kept: kept };
+  }
+
+  /* One undoable step. state = {data, settings}; opts.empty = function returning empty data (or the empty data itself);
+     opts.onSettings(settings) may reset other things such as a current-event id. Mutates settings in place; returns
+     {data, cleared, kept, undo} where undo is a string for restore(). */
+  function startFresh(state, opts) {
+    var undo = snapshot(state), r = clearSettings(state.settings, opts), empty = opts && opts.empty;
+    if (opts && opts.onSettings) opts.onSettings(state.settings);
+    return { data: typeof empty === 'function' ? empty() : empty, cleared: r.cleared, kept: r.kept, undo: undo };
+  }
+
+  /* Snapshot of data AND settings, so one Undo brings back both. */
+  function snapshot(state) { return JSON.stringify({ practiceData: 1, data: state.data, settings: state.settings }); }
+  /* Put settings back in place (same object) and return the data to re-sanitize. Also accepts an old data-only snapshot. */
+  function restore(str, settings) {
+    var o = JSON.parse(str);
+    if (!o || o.practiceData !== 1) return { data: o };
+    Object.keys(settings).forEach(function (k) { delete settings[k]; });
+    Object.assign(settings, o.settings);
+    return { data: o.data };
+  }
+
+  /* True if any text field of the tool's settings still equals a known practice value (used by tests). */
+  function leftovers(settings, practiceValues) {
+    var vals = Array.isArray(practiceValues) ? practiceValues : Object.keys(practiceValues).map(function (k) { return practiceValues[k]; });
+    return Object.keys(settings).filter(function (k) { return k !== MARK && vals.some(function (v) { return same(v, settings[k]); }); });
+  }
+
+  return { MARK: MARK, seed: seed, practiceKeys: practiceKeys, clearSettings: clearSettings, startFresh: startFresh, snapshot: snapshot, restore: restore, leftovers: leftovers };
+});
 
 </script><script>
 /* Type-ahead search helpers. Works in the browser and in Node.
@@ -377,6 +483,8 @@ details.more{margin:14px 0}details.more summary{cursor:pointer;min-height:44px;p
     { id: 'utilities', label: 'Utility help', color: '#b3261e', words: 'utility utilities electric electricity gas heat heating water bill bills power' },
     { id: 'other', label: 'Other help', color: '#46505b', words: 'other clothing legal' }
   ];
+  /* Saved-data format. 1.0.0 and 1.1.0 saved no schemaVersion (that shape is version 1); 1.2.0 writes schemaVersion 1. */
+  var SCHEMA_VERSION = 1;
   var DAY_WORDS = { weekend: [0, 6], weekends: [0, 6], weekday: [1, 2, 3, 4, 5], weekdays: [1, 2, 3, 4, 5] };
 
   function str(v, max) { return String(v == null ? '' : v).replace(/\s+/g, ' ').trim().slice(0, max || 200); }
@@ -400,11 +508,18 @@ details.more{margin:14px 0}details.more summary{cursor:pointer;min-height:44px;p
     return { id: str(p.id, 40) || uid(), category: ids.indexOf(p.category) >= 0 ? p.category : ids[ids.length - 1], name: str(p.name, 120), address: str(p.address, 200), phone: tidyPhone(p.phone),
       days: days, times: str(p.times, 60), hoursNote: str(p.hoursNote, 160), notes: str(p.notes, 300), checked: isoOk(p.checked), lat: lat, lon: lon };
   }
-  function sanitize(d) {
+  /* Upgrade older saved data to the current shape on load. Missing schemaVersion = the unversioned 1.0.0 shape. Never drops places. */
+  function migrate(d) {
     d = d && typeof d === 'object' ? d : {};
+    var v = +d.schemaVersion || 1;
+    if (v < SCHEMA_VERSION) v = SCHEMA_VERSION; // 1 -> 1 (nothing older exists yet)
+    return Object.assign({}, d, { schemaVersion: v });
+  }
+  function sanitize(d) {
+    d = migrate(d);
     var cl = Array.isArray(d.categories) && d.categories.length ? d.categories.map(function (c) { return { id: str(c.id, 30), label: str(c.label, 60), color: /^#[0-9a-f]{6}$/i.test(c.color) ? c.color : '#46505b', words: str(c.words, 300) }; }).filter(function (c) { return c.id && c.label; }) : CATEGORIES;
     if (!cl.length) cl = CATEGORIES;
-    return { categories: cl, places: (Array.isArray(d.places) ? d.places : []).map(function (p) { return cleanPlace(p, cl); }).filter(function (p) { return p.name; }) };
+    return { schemaVersion: SCHEMA_VERSION, categories: cl, places: (Array.isArray(d.places) ? d.places : []).map(function (p) { return cleanPlace(p, cl); }).filter(function (p) { return p.name; }) };
   }
   function blank(category, today) { return { id: uid(), category: category || 'pantry', name: '', address: '', phone: '', days: [], times: '', hoursNote: '', notes: '', checked: today || '', lat: null, lon: null }; }
 
@@ -459,7 +574,15 @@ details.more{margin:14px 0}details.more summary{cursor:pointer;min-height:44px;p
     group(data, data.places).forEach(function (g) { g.places.forEach(function (p) { rows.push([g.cat.label, p.name, p.address, p.phone, dayList(p.days), p.times, p.hoursNote, p.notes, p.checked]); }); });
     return rows;
   }
-  var api = { DAYS: DAYS, SHORT: SHORT, CATEGORIES: CATEGORIES, sanitize: sanitize, blank: blank, tidyPhone: tidyPhone, dayList: dayList, hoursText: hoursText, daysSince: daysSince, isStale: isStale,
+  /* First-run start list from an organization's own config (window.DirectorySeed): {places, categories?, settings?}.
+     Returns {data, settings} with the seed's settings copied; the practice-data banner is NOT switched on. */
+  function fromSeed(seed) {
+    seed = seed && typeof seed === 'object' ? seed : {};
+    var st = seed.settings && typeof seed.settings === 'object' ? seed.settings : {}, out = {};
+    Object.keys(st).forEach(function (k) { out[k] = st[k]; });
+    return { data: sanitize({ categories: seed.categories, places: seed.places }), settings: out };
+  }
+  var api = { DAYS: DAYS, SHORT: SHORT, CATEGORIES: CATEGORIES, sanitize: sanitize, migrate: migrate, fromSeed: fromSeed, SCHEMA_VERSION: SCHEMA_VERSION, blank: blank, tidyPhone: tidyPhone, dayList: dayList, hoursText: hoursText, daysSince: daysSince, isStale: isStale,
     search: search, group: group, sortPlaces: sortPlaces, csvRows: csvRows, categories: cats };
   root.Directory = api;
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
@@ -491,11 +614,6 @@ details.more{margin:14px 0}details.more summary{cursor:pointer;min-height:44px;p
 })(typeof window !== 'undefined' ? window : globalThis);
 
 </script><script>
-/* This organization's layer on the resource-directory tool: wording for the first-run practice list. Everything else is edited inside the app. */
-window.DirectorySample.orgName = 'Church Welcome Desk';
-window.DirectorySample.deskNote = 'Hours change, so please call before you go. Ask at the welcome desk if you need help finding something else. This list is for guidance only.';
-
-</script><script>
 /* Browser storage adapter. Interface: load() -> data|null, save(data) -> bool, loadSettings() -> {}, saveSettings(obj).
    Falls back to memory if the browser blocks storage (save() then returns false). */
 (function (root) {
@@ -516,7 +634,7 @@ window.DirectorySample.deskNote = 'Hours change, so please call before you go. A
 /* Local-help directory UI. Plain JS; talks to Directory (core), DirectoryStorage (adapter) and the shared Toolkit* components. */
 (function () {
   'use strict';
-  var D = window.Directory, S = window.DirectoryStorage, SAMPLE = window.DirectorySample, M = window.ToolkitMap;
+  var D = window.Directory, S = window.DirectoryStorage, SAMPLE = window.DirectorySample, M = window.ToolkitMap, PD = window.ToolkitPracticeData;
   var settings = S.loadSettings(), data = S.load(), screen = 'list', query = '', selId = null, form = null, toastTimer = null, storageOk = true;
   var $app = document.getElementById('app');
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
@@ -524,19 +642,24 @@ window.DirectorySample.deskNote = 'Hours change, so please call before you go. A
   function fmt(iso) { if (!iso) return ''; var d = new Date(iso + 'T12:00:00'); return ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][d.getMonth()] + ' ' + d.getDate() + ', ' + d.getFullYear(); }
 
   function startSample() {
-    var b = SAMPLE.build(); data = D.sanitize(b); settings.org = SAMPLE.orgName; settings.deskNote = SAMPLE.deskNote; settings.center = SAMPLE.center; settings.sample = true;
+    var b = SAMPLE.build(); data = D.sanitize(b); PD.seed(settings, { org: SAMPLE.orgName, deskNote: SAMPLE.deskNote, center: SAMPLE.center }, PRACTICE);
   }
-  if (!data) { startSample(); settings.welcome = true; S.saveSettings(settings); S.save(data); }
+  /* "Start fresh" clears the practice name, note and map centre only while they are still the practice values (components/practice-data). */
+  var PRACTICE = { legacy: { org: [SAMPLE.orgName], deskNote: [SAMPLE.deskNote], center: [SAMPLE.center] } };
+  /* First run: the organization's own starting list (window.DirectorySeed) if it has one, otherwise made-up practice places. */
+  function startSeed(seed) { var r = D.fromSeed(seed); data = r.data; Object.keys(r.settings).forEach(function (k) { settings[k] = r.settings[k]; }); settings.sample = false; }
+  if (!data) { if (window.DirectorySeed) startSeed(window.DirectorySeed); else startSample(); settings.welcome = true; S.saveSettings(settings); S.save(data); }
+  else if (!data.places.length && !settings.sample && PD.practiceKeys(settings, PRACTICE).length) { PD.clearSettings(settings, PRACTICE); S.saveSettings(settings); } // practice text left by an older "Start fresh"
   if (settings.tiles == null) settings.tiles = true;
   ToolkitTheme.apply(settings.theme);
   function save() { storageOk = S.save(data); S.saveSettings(settings); }
-  function snapshot() { return JSON.stringify(data); }
+  function snapshot() { return PD.snapshot({ data: data, settings: settings }); }
   function toast(msg, undoSnap) {
     var old = document.getElementById('toast'); if (old) old.remove(); clearTimeout(toastTimer);
     var t = document.createElement('div'); t.id = 'toast'; t.className = 'toast'; t.setAttribute('role', 'status');
     t.innerHTML = '<span>' + esc(msg) + '</span>' + (undoSnap ? '<button type="button">Undo</button>' : '');
     document.body.appendChild(t);
-    if (undoSnap) t.querySelector('button').onclick = function () { data = D.sanitize(JSON.parse(undoSnap)); save(); t.remove(); render(); };
+    if (undoSnap) t.querySelector('button').onclick = function () { data = D.sanitize(PD.restore(undoSnap, settings).data); save(); t.remove(); render(); };
     toastTimer = setTimeout(function () { t.remove(); }, 8000);
   }
   function go(s) { screen = s; if (s === 'list' || s === 'map') form = null; render(); window.scrollTo(0, 0); }
@@ -695,16 +818,24 @@ window.DirectorySample.deskNote = 'Hours change, so please call before you go. A
       '<label for="s_note">Note at the bottom of the printout</label><textarea id="s_note" data-set="deskNote">' + esc(settings.deskNote || '') + '</textarea>' +
       '<label for="s_size">Print size</label><select id="s_size" data-set="printSize">' + sizes.map(function (s) { return '<option value="' + s[0] + '"' + ((settings.printSize || '') === s[0] ? ' selected' : '') + '>' + s[1] + '</option>'; }).join('') + '</select>' +
       '<label for="s_stale">Ask people to call first when hours were last checked more than</label><select id="s_stale" data-set="staleDays">' + [30, 60, 90, 180].map(function (n) { return '<option value="' + n + '"' + ((settings.staleDays || 90) === n ? ' selected' : '') + '>' + n + ' days ago</option>'; }).join('') + '</select>' +
+      '<label><input type="checkbox" data-set="printPerKind" id="s_perkind"' + (settings.printPerKind ? ' checked' : '') + ' style="width:auto;min-height:0"> Print each kind of help on its own page</label>' +
       '<label><input type="checkbox" data-set="tiles" id="s_tiles"' + (settings.tiles ? ' checked' : '') + ' style="width:auto;min-height:0"> Show street map behind the pins when there is internet</label></div>' +
       '<details class="more"><summary>More options</summary><div class="actions"><button type="button" data-act="welcomeOn">Show the welcome again</button><button type="button" data-act="sample">Start over with practice data</button><button class="danger" type="button" data-act="fresh">Start fresh (empty list)</button></div>' +
       '<p class="muted small">Everything is saved only on this device, in this browser. Only public place details are stored: never names or needs of the people you help.</p></details>';
   }
 
   /* ---- one-page printout (hidden on screen) ---- */
+  function printItem(p) { var st = D.isStale(p, today(), settings.staleDays); return '<div class="pl-item"><b>' + esc(p.name) + '</b><br>' + (p.address ? esc(p.address) + '<br>' : '') + (p.phone ? esc(p.phone) + ' · ' : '') + esc(D.hoursText(p)) + (p.notes ? '<br>' + esc(p.notes) : '') + '<br><i>' + (p.checked ? 'Checked ' + esc(fmt(p.checked)) : 'Not checked recently') + (st ? ' — please call first' : '') + '</i></div>'; }
+  /* Optional: one printed page per kind of help (printPerKind), each page with the same heading and note. */
+  function printPages(groups, latest) {
+    return groups.map(function (g) { return '<div class="print-page pl-page"><h1>' + esc(settings.org || 'Local help') + ': ' + esc(g.cat.label) + '</h1><div class="pl-sub">Free help nearby. Printed ' + esc(fmt(today())) + '. Most recent check: ' + esc(fmt(latest)) + '.</div>' +
+      '<section class="pl-kind"><h2>' + esc(g.cat.label) + '</h2>' + g.places.map(printItem).join('') + '</section>' + (settings.deskNote ? '<div class="pl-foot">' + esc(settings.deskNote) + '</div>' : '') + '</div>'; }).join('');
+  }
   function printArea() {
     var groups = D.group(data, data.places), latest = data.places.map(function (p) { return p.checked; }).sort().pop() || today();
+    if (settings.printPerKind) return '<div class="print-only print-section ' + esc(settings.printSize || '') + '" id="printArea">' + printPages(groups, latest) + '</div>';
     return '<div class="print-only print-section ' + esc(settings.printSize || '') + '" id="printArea"><h1>' + esc(settings.org || 'Local help') + ': Local help</h1><div class="pl-sub">Free help nearby, grouped by kind. Printed ' + esc(fmt(today())) + '. Most recent check: ' + esc(fmt(latest)) + '.</div><div class="pl-cols">' +
-      groups.map(function (g) { return '<section><h2>' + esc(g.cat.label) + '</h2>' + g.places.map(function (p) { var st = D.isStale(p, today(), settings.staleDays); return '<div class="pl-item"><b>' + esc(p.name) + '</b><br>' + (p.address ? esc(p.address) + '<br>' : '') + (p.phone ? esc(p.phone) + ' · ' : '') + esc(D.hoursText(p)) + (p.notes ? '<br>' + esc(p.notes) : '') + '<br><i>' + (p.checked ? 'Checked ' + esc(fmt(p.checked)) : 'Not checked recently') + (st ? ' — please call first' : '') + '</i></div>'; }).join('') + '</section>'; }).join('') +
+      groups.map(function (g) { return '<section><h2>' + esc(g.cat.label) + '</h2>' + g.places.map(printItem).join('') + '</section>'; }).join('') +
       '</div>' + (settings.deskNote ? '<div class="pl-foot">' + esc(settings.deskNote) + '</div>' : '') + '</div>';
   }
   function doPrint() { var el = document.getElementById('printArea'); if (!el) { var d = document.createElement('div'); d.innerHTML = printArea(); document.body.appendChild(d.firstChild); } ToolkitPrint.print((settings.org || 'Local help') + ' - local help list'); }
@@ -771,7 +902,7 @@ window.DirectorySample.deskNote = 'Hours change, so please call before you go. A
     if (act === 'restore') return ToolkitBackup.pick('restoreFile');
     if (act === 'csv') return ToolkitCsv.download('local-help-list-' + today() + '.csv', D.csvRows(data));
     if (act === 'sample') { if (!window.confirm('Replace the list with made-up practice places? You can undo this right after.')) return; var s1 = snapshot(); startSample(); save(); go('list'); return toast('Practice data loaded.', s1); }
-    if (act === 'fresh') { if (!window.confirm('Remove all ' + data.places.length + ' places and start with an empty list? You can undo this right after.')) return; var s2 = snapshot(); data = D.sanitize({ places: [] }); settings.sample = false; settings.welcome = false; save(); go('list'); return toast('Started fresh. Tap “Add a place” to begin.', s2); }
+    if (act === 'fresh') { if (!window.confirm('Remove all ' + data.places.length + ' places and start with an empty list? You can undo this right after.')) return; var fr = PD.startFresh({ data: data, settings: settings }, Object.assign({ empty: function () { return D.sanitize({ places: [] }); } }, PRACTICE)); data = fr.data; save(); go('list'); return toast('Started fresh, practice name and note cleared. Tap “Add a place” to begin.', fr.undo); }
   });
   function pickPins() { return data.places.filter(function (x) { return x.id !== form.id; }).map(function (x) { return { id: x.id, n: '•', lat: x.lat, lon: x.lon }; }).filter(function (x) { return M.valid(x.lat, x.lon); }).concat(M.valid(form.lat, form.lon) ? [{ id: 'me', n: '★', lat: form.lat, lon: form.lon }] : []); }
   render();
