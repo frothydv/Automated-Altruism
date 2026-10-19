@@ -256,6 +256,89 @@ details{margin:10px 0}summary{cursor:pointer;min-height:44px;padding:10px 0;font
 })(typeof window !== 'undefined' ? window : globalThis);
 
 </script><script>
+/* Practice data helper: remembers which settings a tool filled with made-up values, and clears them on "start fresh".
+   Plain script (global ToolkitPracticeData) or require(). No storage of its own: it works on the tool's settings object.
+   Settings are cleared only when they still hold the practice value, so a name the charity typed is never touched. */
+(function (root, factory) {
+  if (typeof module === 'object' && module.exports) module.exports = factory(); else root.ToolkitPracticeData = factory();
+})(typeof self !== 'undefined' ? self : this, function () {
+  'use strict';
+  var MARK = 'practiceSet'; // settings.practiceSet = { key: practiceValue } for every setting seed() filled
+  var DEFAULT_FLAGS = { sample: { key: 'sample', practice: true, fresh: false }, welcome: { key: 'welcome', practice: true, fresh: false } };
+
+  function flags(opts) {
+    var f = (opts && opts.flags) || {}, o = {};
+    ['sample', 'welcome'].forEach(function (n) { o[n] = f[n] === null ? null : Object.assign({}, DEFAULT_FLAGS[n], f[n] || {}); });
+    return o;
+  }
+  function same(a, b) { return JSON.stringify(a) === JSON.stringify(b); }
+
+  /* Fill settings with practice values and remember them. values: {org: 'Example Pantry', ...}. Sets the practice banner and welcome flags. */
+  function seed(settings, values, opts) {
+    var f = flags(opts), rec = {};
+    Object.keys(values || {}).forEach(function (k) { settings[k] = values[k]; rec[k] = values[k]; });
+    settings[MARK] = Object.assign(settings[MARK] || {}, rec);
+    if (f.sample) settings[f.sample.key] = f.sample.practice;
+    if (f.welcome) settings[f.welcome.key] = f.welcome.practice;
+    return settings;
+  }
+
+  /* Which setting keys still hold a practice value? Checks what seed() recorded, plus opts.legacy ({key: [values]}) for data saved
+     before this component existed. */
+  function practiceKeys(settings, opts) {
+    var rec = settings[MARK] || {}, legacy = (opts && opts.legacy) || {}, out = [];
+    Object.keys(rec).concat(Object.keys(legacy)).forEach(function (k) {
+      if (out.indexOf(k) >= 0 || settings[k] === undefined) return;
+      var cands = [rec[k]].concat(legacy[k] || []).filter(function (v) { return v !== undefined; });
+      if (cands.some(function (v) { return same(v, settings[k]); })) out.push(k);
+    });
+    return out;
+  }
+
+  /* Clear every still-practice setting (to opts.blank, default ''), the banner and welcome flags, and the record of what was seeded.
+     Returns {cleared: [keys], kept: [keys the charity changed]}. */
+  function clearSettings(settings, opts) {
+    var f = flags(opts), blank = opts && 'blank' in opts ? opts.blank : '', rec = settings[MARK] || {}, legacy = (opts && opts.legacy) || {};
+    var cleared = practiceKeys(settings, opts), kept = Object.keys(rec).concat(Object.keys(legacy)).filter(function (k, i, a) {
+      return a.indexOf(k) === i && cleared.indexOf(k) < 0 && settings[k] !== undefined && settings[k] !== blank;
+    });
+    cleared.forEach(function (k) { settings[k] = blank; });
+    delete settings[MARK];
+    if (f.sample) settings[f.sample.key] = f.sample.fresh;
+    if (f.welcome) settings[f.welcome.key] = f.welcome.fresh;
+    return { cleared: cleared, kept: kept };
+  }
+
+  /* One undoable step. state = {data, settings}; opts.empty = function returning empty data (or the empty data itself);
+     opts.onSettings(settings) may reset other things such as a current-event id. Mutates settings in place; returns
+     {data, cleared, kept, undo} where undo is a string for restore(). */
+  function startFresh(state, opts) {
+    var undo = snapshot(state), r = clearSettings(state.settings, opts), empty = opts && opts.empty;
+    if (opts && opts.onSettings) opts.onSettings(state.settings);
+    return { data: typeof empty === 'function' ? empty() : empty, cleared: r.cleared, kept: r.kept, undo: undo };
+  }
+
+  /* Snapshot of data AND settings, so one Undo brings back both. */
+  function snapshot(state) { return JSON.stringify({ practiceData: 1, data: state.data, settings: state.settings }); }
+  /* Put settings back in place (same object) and return the data to re-sanitize. Also accepts an old data-only snapshot. */
+  function restore(str, settings) {
+    var o = JSON.parse(str);
+    if (!o || o.practiceData !== 1) return { data: o };
+    Object.keys(settings).forEach(function (k) { delete settings[k]; });
+    Object.assign(settings, o.settings);
+    return { data: o.data };
+  }
+
+  /* True if any text field of the tool's settings still equals a known practice value (used by tests). */
+  function leftovers(settings, practiceValues) {
+    var vals = Array.isArray(practiceValues) ? practiceValues : Object.keys(practiceValues).map(function (k) { return practiceValues[k]; });
+    return Object.keys(settings).filter(function (k) { return k !== MARK && vals.some(function (v) { return same(v, settings[k]); }); });
+  }
+
+  return { MARK: MARK, seed: seed, practiceKeys: practiceKeys, clearSettings: clearSettings, startFresh: startFresh, snapshot: snapshot, restore: restore, leftovers: leftovers };
+});
+
+</script><script>
 /* Type-ahead search helpers. Works in the browser and in Node.
    ToolkitSearch.norm(s)            lower-case, accents removed, punctuation -> spaces
    ToolkitSearch.tokens(q, stop)    words typed by the person, minus filler words (default: on in the a for at and of open me i need)
@@ -522,17 +605,26 @@ details{margin:10px 0}summary{cursor:pointer;min-height:44px;padding:10px 0;font
   /* The practice settings as shipped. An organization's org-config.js may change orgName, letterhead... above, but these stay as the originals,
      so a leftover original is always recognised as practice text. */
   var PRACTICE = { org: 'Example Community Pantry', letterhead: 'Example Community Pantry\n1 Church Street, Springfield, XX 00000\nexample-pantry.example · 555-0100', signer: 'Pat Sample', signerTitle: 'Treasurer', ein: '00-0000000' };
-  /* Blank every setting that still holds a practice value (the originals, or the values seed() put there). Values the organization typed are kept.
-     The organization's own name from org-config is theirs, so only the original practice name counts for `org`. Returns the keys cleared. */
-  function clearPractice(settings) {
-    var S = root.DonorSample, seeded = { letterhead: S.letterhead, signer: S.signer, signerTitle: S.signerTitle, ein: S.ein }, cleared = [];
-    Object.keys(PRACTICE).forEach(function (k) {
-      var v = settings[k]; if (v == null || v === '') return;
-      if (v === PRACTICE[k] || (seeded[k] && v === seeded[k])) { settings[k] = ''; cleared.push(k); }
-    });
-    return cleared;
+  /* How components/practice-data should treat the donor-receipts settings. Legacy values are the shipped originals plus whatever an
+     org-config layer put in the letterhead, signer, title and EIN (so text left by older versions is still recognised).
+     The organization's own name from org-config is theirs, so only the original practice name counts for `org`. */
+  function practiceOptions(extra) {
+    var S = root.DonorSample, legacy = { org: [PRACTICE.org] };
+    ['letterhead', 'signer', 'signerTitle', 'ein'].forEach(function (k) { legacy[k] = [PRACTICE[k], S[k]].filter(function (v) { return v; }); });
+    return Object.assign({ legacy: legacy, blank: '' }, extra || {});
   }
-  root.DonorSample = { PRACTICE: PRACTICE, clearPractice: clearPractice, orgName: 'Example Community Pantry', letterhead: 'Example Community Pantry\n1 Church Street, Springfield, XX 00000\nexample-pantry.example · 555-0100', signer: 'Pat Sample', signerTitle: 'Treasurer', ein: '00-0000000', build: build };
+  /* The settings the practice data fills in (the org name only when it is not the organization's own). */
+  function practiceValues() {
+    var S = root.DonorSample, v = { letterhead: S.letterhead, signer: S.signer, signerTitle: S.signerTitle, ein: S.ein };
+    if (S.orgName === PRACTICE.org) v.org = S.orgName;
+    return v;
+  }
+  /* Blank every setting that still holds a practice value (the originals, or the values seed() put there). Values the organization typed are kept.
+     Returns the keys cleared. Does not touch the banner or welcome flags. */
+  function clearPractice(settings) {
+    return root.ToolkitPracticeData.clearSettings(settings, practiceOptions({ flags: { sample: null, welcome: null } })).cleared;
+  }
+  root.DonorSample = { PRACTICE: PRACTICE, practiceOptions: practiceOptions, practiceValues: practiceValues, clearPractice: clearPractice, orgName: 'Example Community Pantry', letterhead: 'Example Community Pantry\n1 Church Street, Springfield, XX 00000\nexample-pantry.example · 555-0100', signer: 'Pat Sample', signerTitle: 'Treasurer', ein: '00-0000000', build: build };
 })(typeof window !== 'undefined' ? window : globalThis);
 
 </script><script>
@@ -556,12 +648,12 @@ details{margin:10px 0}summary{cursor:pointer;min-height:44px;padding:10px 0;font
 (function () {
   'use strict';
   var C = window.Donors, S = window.DonorStorage, SAMPLE = window.DonorSample, IM = window.DonorImport, Dt = window.ToolkitDates;
-  var settings = S.loadSettings(), data = S.load(), screen = 'log', toastTimer = null, storageOk = true;
+  var PD = window.ToolkitPracticeData, settings = S.loadSettings(), data = S.load(), screen = 'log', toastTimer = null, storageOk = true;
   var imp = null, form = null, giftYear = null, letterYear = null, $app = document.getElementById('app');
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
   function fresh() { return { q: '', donorId: null, address: '', date: Dt.today(), kind: 'cash', amount: '', desc: '', returned: '', source: '', editId: null, err: '' }; }
   function seed() {
-    data = SAMPLE.build(); settings.org = SAMPLE.orgName; settings.letterhead = SAMPLE.letterhead; settings.signer = SAMPLE.signer; settings.signerTitle = SAMPLE.signerTitle; settings.ein = SAMPLE.ein; settings.sample = true;
+    data = SAMPLE.build(); settings.org = SAMPLE.orgName; PD.seed(settings, SAMPLE.practiceValues(), SAMPLE.practiceOptions({ flags: { welcome: null } }));
     save();
   }
   if (!data) { seed(); settings.welcome = true; save(); }
@@ -795,7 +887,7 @@ details{margin:10px 0}summary{cursor:pointer;min-height:44px;padding:10px 0;font
     else if (act === 'editDonor') { var x = donor(id), nm = prompt('Name:', x.name); if (nm == null) return; var ad = prompt('Mailing address (use a comma between lines, leave empty for none):', (x.address || '').replace(/\n/g, ', ')); if (ad == null) return; snap = snapshot(); var r = C.renameDonor(data, id, nm, ad.split(/\s*,\s*/).join('\n')); if (r.error) return toast(r.error); save(); toast('Saved.', snap); render(); }
     else if (act === 'delDonor') { var y = donor(id), n = data.gifts.filter(function (z) { return z.donorId === id; }).length; if (!confirm('Remove ' + y.name + (n ? ' and their ' + n + ' gift' + (n === 1 ? '' : 's') : '') + '?')) return; snap = snapshot(); C.removeDonor(data, id); save(); toast(y.name + ' removed.', snap); render(); }
     else if (act === 'sampleReset') { if (!confirm('Replace everything with made-up practice donors?')) return; snap = snapshot(); var ss = settingsSnap(); seed(); toast('Practice data is back.', snap, ss); form = fresh(); go('log'); }
-    else if (act === 'fresh') { if (!confirm('Clear all donors and gifts so you can start with real ones? (Your backup files are not touched. You can undo right after.)')) return; snap = snapshot(); var setSnap = settingsSnap(); data = C.emptyData(); SAMPLE.clearPractice(settings); settings.sample = false; settings.welcome = false; save(); toast('Cleared, including the practice letterhead and signer. Ready for real gifts.', snap, setSnap); form = fresh(); go('log'); }
+    else if (act === 'fresh') { if (!confirm('Clear all donors and gifts so you can start with real ones? (Your backup files are not touched. You can undo right after.)')) return; snap = snapshot(); var setSnap = settingsSnap(); data = C.emptyData(); PD.startFresh({ data: data, settings: settings }, SAMPLE.practiceOptions({ empty: C.emptyData })); save(); toast('Cleared, including the practice letterhead and signer. Ready for real gifts.', snap, setSnap); form = fresh(); go('log'); }
   });
   render();
 })();
