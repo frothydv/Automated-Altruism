@@ -137,6 +137,81 @@ table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:8px;bord
 })(typeof window !== 'undefined' ? window : globalThis);
 
 </script><script>
+/* Forgiving dates for forms. ToolkitDates.parse('10/9/26') -> '2026-10-09' (or '' if it is not a date).
+   Accepts 2026-10-09, 10/9/2026, 10/9/26, 10-9 (this year), "Oct 9 2026", "9 Oct 2026", and month + year only
+   ("10/2027", "Oct 2027") which means the LAST day of that month (how best-by dates on cans are usually read).
+   Also: iso(Date), today(), addDays(iso, n), daysBetween(fromIso, toIso), describe(days). Works in browser and Node. */
+(function (root) {
+  'use strict';
+  var MONTHS = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
+  function pad(n) { return (n < 10 ? '0' : '') + n; }
+  function iso(d) { return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); }
+  function today() { return iso(new Date()); }
+  function addDays(s, n) { var d = new Date(s + 'T12:00:00'); d.setDate(d.getDate() + n); return iso(d); }
+  function daysBetween(a, b) { return Math.round((new Date(b + 'T12:00:00') - new Date(a + 'T12:00:00')) / 86400000); }
+  function build(y, mo, d) {
+    if (y < 100) y += 2000;
+    var dt = new Date(y, mo - 1, d);
+    return dt.getFullYear() === y && dt.getMonth() === mo - 1 && dt.getDate() === d ? iso(dt) : '';
+  }
+  function monthNum(w) { var i = MONTHS.indexOf(String(w).slice(0, 3).toLowerCase()); return i < 0 ? 0 : i + 1; }
+  function lastDay(y, mo) { if (y < 100) y += 2000; return new Date(y, mo, 0).getDate(); }
+
+  function parse(s) {
+    s = String(s == null ? '' : s).replace(/[,\s]+/g, ' ').trim(); if (!s) return '';
+    var m, y = new Date().getFullYear();
+    if ((m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/))) return build(+m[1], +m[2], +m[3]);
+    if ((m = s.match(/^(\d{1,2})[\/.-](\d{4})$/))) return +m[1] >= 1 && +m[1] <= 12 ? build(+m[2], +m[1], lastDay(+m[2], +m[1])) : '';
+    if ((m = s.match(/^(\d{1,2})[\/.-](\d{1,2})(?:[\/.-](\d{2}|\d{4}))?$/))) return build(m[3] ? +m[3] : y, +m[1], +m[2]);
+    if ((m = s.match(/^([A-Za-z]{3,9})\.? (\d{4})$/)) && monthNum(m[1])) return build(+m[2], monthNum(m[1]), lastDay(+m[2], monthNum(m[1])));
+    if ((m = s.match(/^([A-Za-z]{3,9})\.? (\d{1,2})(?: (\d{2}|\d{4}))?$/)) && monthNum(m[1])) return build(m[3] ? +m[3] : y, monthNum(m[1]), +m[2]);
+    if ((m = s.match(/^(\d{1,2}) ([A-Za-z]{3,9})\.?(?: (\d{2}|\d{4}))?$/)) && monthNum(m[2])) return build(m[3] ? +m[3] : y, monthNum(m[2]), +m[1]);
+    return '';
+  }
+
+  /* 3 -> "3 days left", 1 -> "1 day left", 0 -> "today", -2 -> "2 days past" */
+  function describe(days) {
+    if (days === 0) return 'today';
+    var n = Math.abs(days); return n + (n === 1 ? ' day ' : ' days ') + (days > 0 ? 'left' : 'past');
+  }
+
+  root.ToolkitDates = { parse: parse, iso: iso, today: today, addDays: addDays, daysBetween: daysBetween, describe: describe };
+  if (typeof module !== 'undefined' && module.exports) module.exports = root.ToolkitDates;
+})(typeof window !== 'undefined' ? window : globalThis);
+
+</script><script>
+/* Type-ahead search helpers. Works in the browser and in Node.
+   ToolkitSearch.norm(s)            lower-case, accents removed, punctuation -> spaces
+   ToolkitSearch.tokens(q, stop)    words typed by the person, minus filler words (default: on in the a for at and of open me i need)
+   ToolkitSearch.wordPrefix(t, text) true when t starts one of the words in text ("pan" finds "Pantry")
+   ToolkitSearch.matchAll(tokens, textOrFn) true when EVERY token starts a word of the text (or fn(token) is true)
+   Meant for small lists (hundreds of rows): no index, just a fast scan on every keystroke. */
+(function (root) {
+  'use strict';
+  var STOP = 'on in the a an for at and of open me i need to near some';
+  function norm(s) {
+    s = String(s == null ? '' : s).toLowerCase();
+    if (s.normalize) s = s.normalize('NFD').replace(/[̀-ͯ]/g, '');
+    return s.replace(/[^a-z0-9]+/g, ' ').trim();
+  }
+  function tokens(q, stop) {
+    var st = {}; (stop == null ? STOP : stop).split(' ').forEach(function (w) { if (w) st[w] = 1; });
+    return norm(q).split(' ').filter(function (w) { return w && !st[w]; });
+  }
+  function wordPrefix(t, text) { return (' ' + norm(text)).indexOf(' ' + t) >= 0; }
+  function matchAll(toks, test) {
+    for (var i = 0; i < toks.length; i++) {
+      var ok = typeof test === 'function' ? test(toks[i]) : wordPrefix(toks[i], test);
+      if (!ok) return false;
+    }
+    return true;
+  }
+  var api = { norm: norm, tokens: tokens, wordPrefix: wordPrefix, matchAll: matchAll };
+  root.ToolkitSearch = api;
+  if (typeof module !== 'undefined' && module.exports) module.exports = api;
+})(typeof window !== 'undefined' ? window : globalThis);
+
+</script><script>
 /* One-click backup and restore as a small .json file (needs file-download).
    save({app, filename, data, settings}) - downloads {app, savedAt, settings, data}
    read(file, cb) - cb(null, {data, settings, app}) or cb(error). Also accepts older backups (bare data, or {data, org}).
@@ -296,6 +371,9 @@ table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:8px;bord
   'use strict';
   var C = {};
   var seq = 0;
+  var path = typeof require === 'function' && typeof module !== 'undefined' ? require('path') : null;
+  var Search = root.ToolkitSearch || (path ? require(path.join(__dirname, '..', '..', 'components', 'typeahead-search', 'search.js')) : null); // shared component
+  var Dates = root.ToolkitDates || (path ? require(path.join(__dirname, '..', '..', 'components', 'date-parse', 'dates.js')) : null); // shared component
   C.uid = function (p) { seq++; return (p || 'x') + Date.now().toString(36) + Math.random().toString(36).slice(2, 7) + seq.toString(36); };
   C.emptyData = function () { return { version: 1, guests: [], events: [], checkins: [] }; };
   C.norm = function (s) {
@@ -315,12 +393,10 @@ table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:8px;bord
     return s;
   };
   C.today = function (d) { d = d || new Date(); return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2); };
-  /* Understands 2026-10-09 and "9 Oct 2026" (day/month numbers are ambiguous, so not guessed); else null. */
+  /* Shared forgiving date entry (2026-10-09, 10/9/26, 9 Oct 2026, Oct 2027); returns ISO or null. */
   C.parseDate = function (s) {
-    s = String(s || '').trim(); var m = /^(\d{4})-(\d{1,2})-(\d{1,2})$/.exec(s), t;
-    if (m) t = new Date(+m[1], +m[2] - 1, +m[3]); else { var n = Date.parse(s); if (isNaN(n)) return null; t = new Date(n); }
-    if (isNaN(t.getTime()) || t.getFullYear() < 2000 || t.getFullYear() > 2100) return null;
-    return C.today(t);
+    var iso = Dates.parse(s); if (!iso) return null;
+    var y = +iso.slice(0, 4); return y < 2000 || y > 2100 ? null : iso;
   };
   C.sanitize = function (d) {
     var o = C.emptyData(); if (!d || typeof d !== 'object') return o;
@@ -374,7 +450,7 @@ table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:8px;bord
   };
   C.addEvent = function (d, name, date) {
     name = String(name || '').replace(/\s+/g, ' ').trim().slice(0, 80); if (!name) return { error: 'Please give the event a name.' };
-    var dt = C.parseDate(date || C.today()); if (!dt) return { error: 'That date was not understood. Try it like 2026-10-11 or 11 Oct 2026.' };
+    var dt = C.parseDate(date || C.today()); if (!dt) return { error: 'That date was not understood. Try it like 10/11/26 or 11 Oct 2026.' };
     var ex = d.events.filter(function (e) { return e.name.toLowerCase() === name.toLowerCase() && e.date === dt; })[0];
     if (ex) return { event: ex, existed: true };
     var e = { id: C.uid('e'), name: name, date: dt }; d.events.push(e); return { event: e, existed: false };
@@ -399,7 +475,7 @@ table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:8px;bord
   /* Every typed word must start a word of the name. Best matches first, then frequent visitors.
      Returns [{guest, here, visits}] (max `limit`). */
   C.search = function (d, q, eventId, limit) {
-    var words = C.norm(q).split(' ').filter(Boolean); if (!words.length) return [];
+    var words = Search.tokens(q, ''); if (!words.length) return [];
     var counts = C.visitCounts(d), res = [];
     d.guests.forEach(function (g) {
       var n = C.norm(g.name), parts = n.split(' '), score = 0, ok = true;
